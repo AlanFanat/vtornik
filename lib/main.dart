@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 
-const Color mainColor = Color(0xFF0C0C0D);
+// Светлая тема: цвета вынесены в константы, чтобы их было легко менять.
+const Color mainColor = Color(0xFFF4F4F7); // фон экрана
+const Color cardColor = Color(0xFFFFFFFF); // фон карточки
+const Color cardBorderColor = Color(0xFFE3E3E8); // рамка карточки
+const Color surfaceColor = Color(0xFFE9E9EE); // ячейки, чипы, кружки оценок
+const Color inputFillColor = Color(0xFFF0F0F4); // фон поля заметки
+const Color textColor = Color(0xFF18181C); // основной текст
+const Color accentColor = Color(0xFFE5B84B); // акцент (жёлтый)
 
 void main() {
   runApp(const MainApp());
@@ -15,13 +22,19 @@ class MainApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         scaffoldBackgroundColor: mainColor,
-        brightness: Brightness.dark,
+        brightness: Brightness.light,
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: accentColor,
+          brightness: Brightness.light,
+        ),
       ),
       home: const HomePage(),
     );
   }
 }
+
+//----PAGES----
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -29,43 +42,6 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(
-            children: [
-              const Icon(Icons.star, size: 40, color: Colors.amber),
-              const SizedBox(width: 20),
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'My Days',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'Practice makes perfect',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: IconButton(
-              onPressed: () {
-                // TODO: Открыть настройки
-              },
-              icon: const Icon(Icons.settings_outlined, size: 30),
-            ),
-          ),
-        ],
-      ),
-
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(10),
@@ -74,16 +50,32 @@ class HomePage extends StatelessWidget {
             children: [
               const MonthCalendar(),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
               const DayEditor(),
             ],
           ),
         ),
       ),
+      bottomNavigationBar: NavigationBar(
+        backgroundColor: inputFillColor,
+        destinations: [
+          NavigationDestination(
+            icon: Icon(Icons.calendar_month),
+            label: 'Календарь',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.bar_chart),
+            label: 'Статистика',
+          ),
+          NavigationDestination(icon: Icon(Icons.settings), label: 'Настройки'),
+        ],
+      ),
     );
   }
 }
+
+//----WIDGETS----
 
 class MonthCalendar extends StatelessWidget {
   const MonthCalendar({super.key});
@@ -109,12 +101,16 @@ class MonthCalendar extends StatelessWidget {
       children: [
         const Center(
           child: Text(
-            'October 2026',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            'Октябрь 2026',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
           ),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
 
         // Названия дней недели.
         Row(
@@ -130,7 +126,7 @@ class MonthCalendar extends StatelessWidget {
           }).toList(),
         ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
 
         // Сетка календаря.
         GridView.builder(
@@ -153,13 +149,13 @@ class MonthCalendar extends StatelessWidget {
 
             return Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF242428),
+                color: surfaceColor,
                 borderRadius: BorderRadius.circular(8),
               ),
               alignment: Alignment.center,
               child: Text(
                 '$day',
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: const TextStyle(color: textColor, fontSize: 14),
               ),
             );
           },
@@ -226,26 +222,29 @@ class _DayEditorState extends State<DayEditor> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFF18181C),
+        color: cardColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF29292F)),
+        border: Border.all(color: cardBorderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Оценка дня',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
           ),
 
-          const SizedBox(height: 2),
+          // const SizedBox(height: 2),
 
-          const Text(
-            'Как прошёл твой день?',
-            style: TextStyle(color: Colors.grey, fontSize: 14),
-          ),
-
-          const SizedBox(height: 10),
+          // const Text(
+          //   'Как прошёл твой день?',
+          //   style: TextStyle(color: Colors.grey, fontSize: 14),
+          // ),
+          const SizedBox(height: 6),
 
           Wrap(
             spacing: 4,
@@ -265,9 +264,7 @@ class _DayEditorState extends State<DayEditor> {
                   width: 30,
                   height: 30,
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? colorForRating(rating)
-                        : const Color(0xFF29292F),
+                    color: isSelected ? colorForRating(rating) : surfaceColor,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected
@@ -279,7 +276,7 @@ class _DayEditorState extends State<DayEditor> {
                   child: Text(
                     '$rating',
                     style: TextStyle(
-                      color: isSelected ? Colors.black : Colors.white,
+                      color: isSelected ? Colors.black : textColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -293,7 +290,11 @@ class _DayEditorState extends State<DayEditor> {
           // ТЕГИ
           const Text(
             'Теги дня',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
           ),
 
           const SizedBox(height: 2),
@@ -305,7 +306,10 @@ class _DayEditorState extends State<DayEditor> {
               final isSelected = selectedTags.contains(tag);
 
               return FilterChip(
-                label: Text(tag, style: const TextStyle(fontSize: 12)),
+                label: Text(
+                  tag,
+                  style: const TextStyle(fontSize: 12, color: textColor),
+                ),
                 selected: isSelected,
                 onSelected: (selected) {
                   setState(() {
@@ -316,9 +320,9 @@ class _DayEditorState extends State<DayEditor> {
                     }
                   });
                 },
-                selectedColor: const Color(0xFFE5B84B),
+                selectedColor: accentColor,
                 checkmarkColor: Colors.black,
-                backgroundColor: const Color(0xFF29292F),
+                backgroundColor: surfaceColor,
                 showCheckmark: false,
                 visualDensity: const VisualDensity(
                   horizontal: -3,
@@ -335,24 +339,29 @@ class _DayEditorState extends State<DayEditor> {
             }).toList(),
           ),
 
-          const SizedBox(height: 2),
+          const SizedBox(height: 6),
 
           // ЗАМЕТКА
           const Text(
             'Заметка',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
           ),
 
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
 
           TextField(
             controller: noteController,
             maxLines: 4,
+            style: const TextStyle(color: textColor),
             decoration: InputDecoration(
               hintText: 'Что хорошего произошло сегодня?',
               hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
               filled: true,
-              fillColor: const Color(0xFF222227),
+              fillColor: inputFillColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -374,7 +383,7 @@ class _DayEditorState extends State<DayEditor> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE5B84B),
+                backgroundColor: accentColor,
                 foregroundColor: const Color(0xFF171717),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
