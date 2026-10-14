@@ -29,16 +29,19 @@ class MainApp extends StatelessWidget {
           brightness: Brightness.light,
         ),
       ),
-      home: const HomePage(),
+      home: HomePage(),
     );
   }
 }
 
 //----PAGES----
+class HomePage extends StatefulWidget {
+  @override
+  State<HomePage> createState() => HomePageState();
+}
 
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
+class HomePageState extends State<HomePage> {
+  int navBarIndex = 0;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,6 +61,14 @@ class HomePage extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: NavigationBar(
+        indicatorColor: accentColor,
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+        selectedIndex: navBarIndex,
+        onDestinationSelected: (int index) {
+          setState(() {
+            navBarIndex = index;
+          });
+        },
         backgroundColor: inputFillColor,
         destinations: [
           NavigationDestination(
@@ -395,4 +406,20 @@ class _DayEditorState extends State<DayEditor> {
       ),
     );
   }
+}
+
+//----MODELS----
+
+class DayEntry {
+  final DateTime date;
+  int? rating;
+  List<String> tags;
+  String note;
+
+  DayEntry({
+    required this.date,
+    this.rating,
+    List<String>? tags,
+    this.note = '',
+  }) : tags = tags ?? [];
 }
