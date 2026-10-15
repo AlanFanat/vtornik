@@ -5,10 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// ---------------------------------------------------------------------------
-// Цвета
-// ---------------------------------------------------------------------------
-
 /// Акцент и цвета текста поверх ярких заливок одинаковы в обеих темах.
 const Color accentColor = Color(0xFFE5B84B); // акцент (жёлтый)
 const Color onAccentColor = Color(0xFF171717); // текст на акценте
@@ -144,13 +140,33 @@ final ThemeData _darkTheme = _buildTheme(AppColors.dark, Brightness.dark);
 const List<String> _weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
 const List<String> _months = [
-  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь',
+  'Январь',
+  'Февраль',
+  'Март',
+  'Апрель',
+  'Май',
+  'Июнь',
+  'Июль',
+  'Август',
+  'Сентябрь',
+  'Октябрь',
+  'Ноябрь',
+  'Декабрь',
 ];
 
 const List<String> _monthsGenitive = [
-  'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-  'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+  'января',
+  'февраля',
+  'марта',
+  'апреля',
+  'мая',
+  'июня',
+  'июля',
+  'августа',
+  'сентября',
+  'октября',
+  'ноября',
+  'декабря',
 ];
 
 /// Теги, которые есть при первом запуске. Остальные пользователь добавляет сам.
@@ -235,7 +251,9 @@ class DayEntry {
 
     return DayEntry(
       // Защита от испорченных данных: оценка всегда в пределах 1..10.
-      rating: rating == null ? null : (rating < 1 ? 1 : (rating > 10 ? 10 : rating)),
+      rating: rating == null
+          ? null
+          : (rating < 1 ? 1 : (rating > 10 ? 10 : rating)),
       tags: {...((json['tags'] as List<dynamic>?) ?? const []).cast<String>()},
       note: (json['note'] as String?) ?? '',
     );
@@ -309,7 +327,10 @@ class AppStorage {
   }
 
   /// Текст резервной копии: все дни и теги одной строкой.
-  static String exportBackup(Map<DateTime, DayEntry> entries, List<String> tags) {
+  static String exportBackup(
+    Map<DateTime, DayEntry> entries,
+    List<String> tags,
+  ) {
     return jsonEncode({
       'version': 1,
       'tags': tags,
@@ -340,7 +361,8 @@ class AppStorage {
 
   static Map<String, dynamic> _entriesToJson(Map<DateTime, DayEntry> entries) {
     return {
-      for (final item in entries.entries) _dateKey(item.key): item.value.toJson(),
+      for (final item in entries.entries)
+        _dateKey(item.key): item.value.toJson(),
     };
   }
 
@@ -571,7 +593,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             index: _navIndex,
             children: [
               _buildCalendarTab(),
-              const _StatsPlaceholder(),
+              _StatsPage(entries: _entries),
               SettingsPage(
                 isDarkTheme: widget.isDarkTheme,
                 onDarkThemeChanged: widget.onDarkThemeChanged,
@@ -616,7 +638,62 @@ class _StatsPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Text('Статистика появится позже', style: TextStyle(color: Colors.grey)),
+      child: Text(
+        'Статистика появится позже',
+        style: TextStyle(color: Colors.grey),
+      ),
+    );
+  }
+}
+
+class _StatsPage extends StatelessWidget {
+  const _StatsPage({required this.entries});
+
+  final Map<DateTime, DayEntry> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    final sortEntries = entries.entries.toList()
+      ..sort((a, b) => b.key.compareTo(a.key));
+    return ListView.builder(
+        padding: const EdgeInsets.all(10),
+        itemCount: sortEntries.length, // сколько всего элементов
+        itemBuilder: (context, index) {
+          // как построить элемент по индексу
+          return _DayCard(
+            date: sortEntries[index].key,
+            entry: sortEntries[index].value,
+          );
+        },
+      );
+  }
+}
+
+class _DayCard extends StatelessWidget {
+  const _DayCard({required this.date, required this.entry});
+
+  final DateTime date;
+  final DayEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return Material(
+      color: colors.card,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: colors.cardBorder),
+      ),
+      child: Container(
+        child: Row(
+          children: [
+            Container(child: Text('${entry.rating}')),
+            Column(children: [Text('${date}'), Text('${entry.note}'), Text('${entry.tags}')],),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -861,9 +938,8 @@ class MonthCalendar extends StatelessWidget {
             IconButton(
               tooltip: 'Предыдущий месяц',
               icon: const Icon(Icons.chevron_left),
-              onPressed: () => onMonthChanged(
-                DateUtils.addMonthsToMonthDate(month, -1),
-              ),
+              onPressed: () =>
+                  onMonthChanged(DateUtils.addMonthsToMonthDate(month, -1)),
             ),
             Expanded(
               child: Center(
@@ -881,9 +957,8 @@ class MonthCalendar extends StatelessWidget {
               tooltip: 'Следующий месяц',
               icon: const Icon(Icons.chevron_right),
               onPressed: canGoNext
-                  ? () => onMonthChanged(
-                      DateUtils.addMonthsToMonthDate(month, 1),
-                    )
+                  ? () =>
+                        onMonthChanged(DateUtils.addMonthsToMonthDate(month, 1))
                   : null,
             ),
           ],
@@ -923,7 +998,11 @@ class MonthCalendar extends StatelessWidget {
             // Пустые ячейки перед первым числом.
             if (index < startOffset) return const SizedBox.shrink();
 
-            final date = DateTime(month.year, month.month, index - startOffset + 1);
+            final date = DateTime(
+              month.year,
+              month.month,
+              index - startOffset + 1,
+            );
 
             return _DayCell(
               date: date,
@@ -1155,10 +1234,8 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
   Future<void> _addTag() async {
     final name = await showDialog<String>(
       context: context,
-      builder: (_) => const _TagNameDialog(
-        title: 'Новый тег',
-        confirmLabel: 'Добавить',
-      ),
+      builder: (_) =>
+          const _TagNameDialog(title: 'Новый тег', confirmLabel: 'Добавить'),
     );
     if (name == null || !mounted) return;
 
@@ -1185,7 +1262,10 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 tag,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(height: 4),
@@ -1343,7 +1423,9 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
                       style: TextStyle(
                         fontSize: 12,
                         // На жёлтом акценте текст тёмный в любой теме.
-                        color: _tags.contains(tag) ? onAccentColor : colors.text,
+                        color: _tags.contains(tag)
+                            ? onAccentColor
+                            : colors.text,
                       ),
                     ),
                     selected: _tags.contains(tag),
@@ -1432,7 +1514,10 @@ class _SaveIndicator extends StatelessWidget {
           children: [
             Icon(Icons.check, size: 14, color: Colors.grey),
             SizedBox(width: 4),
-            Text('Сохранено', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            Text(
+              'Сохранено',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
           ],
         );
       case _SaveStatus.failed:
@@ -1541,7 +1626,9 @@ class _RatingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(12));
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    );
 
     return Semantics(
       button: true,
