@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:flutter/foundation.dart';   // для kDebugMode
+import 'day_card_preview.dart';             // твоя песочница
 
 /// Акцент и цвета текста поверх ярких заливок одинаковы в обеих темах.
 const Color accentColor = Color(0xFFE5B84B); // акцент (жёлтый)
@@ -745,7 +749,10 @@ class _DayCard extends StatelessWidget {
                   if (tags.isEmpty)
                     Text(
                       '—',
-                      style: TextStyle(fontSize: 13, color: colors.disabledText),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: colors.disabledText,
+                      ),
                     )
                   else
                     Wrap(
@@ -930,6 +937,23 @@ class SettingsPage extends StatelessWidget {
             ],
           ),
         ),
+
+        if (kDebugMode) ...[
+          const SizedBox(height: 16),
+          const _SectionTitle('Для разработки'),
+          const SizedBox(height: 6),
+          _SettingsCard(
+            child: ListTile(
+              leading: Icon(Icons.palette_outlined, color: colors.text),
+              title: Text('Тест дизайна', style: TextStyle(color: colors.text)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => DayCardPreviewPage()),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
