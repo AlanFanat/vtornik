@@ -676,58 +676,105 @@ class _DayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final rating = entry.rating;
-    final note = entry.note;
-    final tags = entry.tags;
-
-    //Фон рейтинга дня.
-    final Color rateBackground = rating != null
-        ? ratingColor(rating)
-        : colors.surface;
-
-    final Color foreground = rating != null ? onRatingColor : colors.text;
+    final note = entry.note.trim();
+    final tags = entry.tags.toList()..sort();
 
     return Material(
       color: colors.card,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: colors.cardBorder),
       ),
-      child: Container(
-        padding: const EdgeInsets.all(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Плитка оценки: всегда квадрат 54x54, прижат к верху.
             Container(
-              width: 56,
-              height: 56,
+              width: 54,
+              height: 54,
               decoration: BoxDecoration(
-                color: rateBackground,
-                borderRadius: BorderRadius.circular(8),
+                color: rating != null ? ratingColor(rating) : colors.surface,
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Center(
-                child: Text(
-                  rating?.toString() ?? '-',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: foreground,
-                  ),
+              alignment: Alignment.center,
+              child: Text(
+                rating?.toString() ?? '—',
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  color: rating != null ? onRatingColor : colors.disabledText,
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+
+            const SizedBox(width: 12),
+
+            // Дата, заметка и теги.
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(formatDate(date), style: TextStyle(fontSize: 18)),
                   Text(
-                    note.isEmpty ? '-' : note,
+                    formatDate(date),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: colors.text,
+                    ),
+                  ),
+
+                  const SizedBox(height: 3),
+                  Text(
+                    note.isEmpty ? '—' : note,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.3,
+                      color: note.isEmpty ? colors.disabledText : colors.text,
+                    ),
                   ),
-                  Text(tags.isEmpty ? '-' : tags.join(', ')),
+
+                  const SizedBox(height: 6),
+                  if (tags.isEmpty)
+                    Text(
+                      '—',
+                      style: TextStyle(fontSize: 13, color: colors.disabledText),
+                    )
+                  else
+                    Wrap(
+                      spacing: 5,
+                      runSpacing: 4,
+                      children: [
+                        for (final tag in tags)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colors.surface,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              tag,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                height: 1.2,
+                                color: colors.text,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                 ],
               ),
             ),
