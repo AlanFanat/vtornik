@@ -496,7 +496,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
       final updated = entry.withTags({
         for (final tag in entry.tags)
-          if (tag != from) tag else if (to != null) to,
+          if (tag != from) tag else ?to,
       });
 
       if (updated.isEmpty) {
@@ -632,20 +632,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 // ---------------------------------------------------------------------------
 // Статистика (пока заглушка)
 // ---------------------------------------------------------------------------
-class _StatsPlaceholder extends StatelessWidget {
-  const _StatsPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'Статистика появится позже',
-        style: TextStyle(color: Colors.grey),
-      ),
-    );
-  }
-}
-
 class _StatsPage extends StatelessWidget {
   const _StatsPage({required this.entries});
 
@@ -655,17 +641,28 @@ class _StatsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final sortEntries = entries.entries.toList()
       ..sort((a, b) => b.key.compareTo(a.key));
-    return ListView.builder(
-        padding: const EdgeInsets.all(10),
-        itemCount: sortEntries.length, // сколько всего элементов
-        itemBuilder: (context, index) {
-          // как построить элемент по индексу
-          return _DayCard(
-            date: sortEntries[index].key,
-            entry: sortEntries[index].value,
-          );
-        },
+
+    if (sortEntries.isEmpty) {
+      return const Center(
+        child: Text(
+          'Статистика появится позже',
+          style: TextStyle(color: Colors.grey),
+        ),
       );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(10),
+      itemCount: sortEntries.length,
+      itemBuilder: (context, index) {
+        return _DayCard(
+          date: sortEntries[index].key,
+          entry: sortEntries[index].value,
+        );
+      },
+      separatorBuilder: (context, index) {
+        return SizedBox(height: 4);
+      },
+    );
   }
 }
 
@@ -678,6 +675,16 @@ class _DayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final rating = entry.rating;
+    final note = entry.note;
+    final tags = entry.tags;
+
+    //Фон рейтинга дня.
+    final Color rateBackground = rating != null
+        ? ratingColor(rating)
+        : colors.surface;
+
+    final Color foreground = rating != null ? onRatingColor : colors.text;
 
     return Material(
       color: colors.card,
@@ -687,16 +694,88 @@ class _DayCard extends StatelessWidget {
         side: BorderSide(color: colors.cardBorder),
       ),
       child: Container(
+        padding: const EdgeInsets.all(10),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(child: Text('${entry.rating}')),
-            Column(children: [Text('${date}'), Text('${entry.note}'), Text('${entry.tags}')],),
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: rateBackground,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  rating?.toString() ?? '-',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: foreground,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(formatDate(date), style: TextStyle(fontSize: 18)),
+                  Text(
+                    note.isEmpty ? '-' : note,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(tags.isEmpty ? '-' : tags.join(', ')),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 }
+
+// class _RateCell extends StatelessWidget {
+//   const _RateCell({required this.rating});
+
+//   final int? rating;
+
+//   @override
+//   Widget build(BuildContext context) {
+//     final colors = context.colors;
+//     final rating = this.rating;
+
+//     // Оценённый день — цвет оценки, будущий — пустая рамка, остальные — серый.
+//     final Color background = rating != null
+//         ? ratingColor(rating)
+//         : colors.surface;
+
+//     final shape = RoundedRectangleBorder(
+//       borderRadius: BorderRadius.circular(8),
+//     );
+
+//     // На цветной заливке оценки текст всегда тёмный, в любой теме.
+//     final Color foreground = rating != null ? onRatingColor : colors.text;
+
+//     final dayStyle = TextStyle(
+//       fontSize: 14,
+//       color: foreground,
+//       decorationColor: foreground,
+//     );
+
+//     return Material(
+//       color: background,
+//       shape: shape,
+//       child: InkWell(
+//         customBorder: shape,
+//         child: Center(child: Text('${date.day}', style: dayStyle)),
+//       ),
+//     );
+//   }
+// }
 
 // ---------------------------------------------------------------------------
 // Настройки
@@ -1495,6 +1574,15 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
       ),
     );
   }
+}
+
+String formatDate(DateTime date) {
+  final now = DateTime.now();
+
+  var label = '${date.day} ${_monthsGenitive[date.month - 1]}';
+  if (date.year != now.year) label = '$label ${date.year}';
+
+  return DateUtils.isSameDay(date, now) ? 'Сегодня, $label' : label;
 }
 
 /// Маленький индикатор в шапке редактора: день сохранился или нет.
