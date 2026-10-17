@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/day_entry.dart';
+import '../../widgets/section_title.dart';
 import 'day_card.dart';
 
 /// Пока это лента прошлых дней; настоящая статистика появится позже.
@@ -15,20 +16,41 @@ class StatsPage extends StatelessWidget {
     final sortedEntries = entries.entries.toList()
       ..sort((a, b) => b.key.compareTo(a.key));
 
+    // Записей нет: прокручивать нечего, заголовок просто стоит сверху.
     if (sortedEntries.isEmpty) {
-      return const Center(
-        child: Text(
-          'Статистика появится позже',
-          style: TextStyle(color: Colors.grey),
+      return const Padding(
+        padding: EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PageTitle('Статистика'),
+            Expanded(
+              child: Center(
+                child: Text(
+                  'Статистика появится позже',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
 
     return ListView.separated(
       padding: const EdgeInsets.all(10),
-      itemCount: sortedEntries.length,
+      // +1: нулевой элемент списка — заголовок, он прокручивается вместе с днями.
+      itemCount: sortedEntries.length + 1,
       itemBuilder: (context, index) {
-        final item = sortedEntries[index];
+        if (index == 0) {
+          // 4 px даёт разделитель, ещё 8 — чтобы вышло 12, как в настройках.
+          return const Padding(
+            padding: EdgeInsets.only(bottom: 8),
+            child: PageTitle('Статистика'),
+          );
+        }
+
+        final item = sortedEntries[index - 1];
         return DayCard(date: item.key, entry: item.value);
       },
       separatorBuilder: (context, index) => const SizedBox(height: 4),

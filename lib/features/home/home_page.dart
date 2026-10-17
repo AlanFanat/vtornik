@@ -1,3 +1,4 @@
+import 'package:dayly/widgets/section_title.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -75,6 +76,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          PageTitle('Календарь'),
           MonthCalendar(
             month: _visibleMonth,
             selectedDate: _selectedDate,

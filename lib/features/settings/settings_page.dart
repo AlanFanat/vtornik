@@ -56,14 +56,7 @@ class SettingsPage extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(10),
       children: [
-        Text(
-          'Настройки',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: colors.text,
-          ),
-        ),
+        PageTitle('Настройки'),
         const SizedBox(height: 12),
 
         _SettingsCard(
