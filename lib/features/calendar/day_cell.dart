@@ -1,0 +1,86 @@
+import 'package:flutter/material.dart';
+
+import '../../core/colors.dart';
+
+/// Одна ячейка календаря.
+class DayCell extends StatelessWidget {
+  const DayCell({
+    super.key,
+    required this.date,
+    required this.rating,
+    required this.isSelected,
+    required this.isToday,
+    required this.isFuture,
+    required this.onTap,
+  });
+
+  final DateTime date;
+  final int? rating;
+  final bool isSelected;
+  final bool isToday;
+  final bool isFuture;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final rating = this.rating;
+
+    // Оценённый день — цвет оценки, будущий — пустая рамка, остальные — серый.
+    final Color background = isFuture
+        ? Colors.transparent
+        : rating != null
+        ? ratingColor(rating)
+        : colors.surface;
+
+    // Выбранный день обводим цветом текста: акцент терялся бы на цветных оценках.
+    final BorderSide border = isSelected
+        ? BorderSide(color: colors.text, width: 2)
+        : isFuture
+        ? BorderSide(color: colors.cardBorder)
+        : BorderSide.none;
+
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8),
+      side: border,
+    );
+
+    // На цветной заливке оценки текст всегда тёмный, в любой теме.
+    final Color foreground = isFuture
+        ? colors.disabledText
+        : rating != null
+        ? onRatingColor
+        : colors.text;
+
+    final dayStyle = TextStyle(
+      fontSize: 14,
+      color: foreground,
+      fontWeight: isToday ? FontWeight.w800 : FontWeight.normal,
+      // Сегодняшний день подчёркнут: не конфликтует с рамкой выбора.
+      decoration: isToday ? TextDecoration.underline : null,
+      decorationColor: foreground,
+    );
+
+    return Semantics(
+      button: !isFuture,
+      enabled: !isFuture,
+      selected: isSelected,
+      excludeSemantics: true,
+      label: isFuture
+          ? '${date.day}, день ещё не наступил'
+          : rating != null
+          ? '${date.day}, оценка $rating'
+          : '${date.day}, без оценки',
+      child: Material(
+        color: background,
+        shape: shape,
+        child: InkWell(
+          customBorder: shape,
+          // null у будущих дней: ни нажатия, ни ряби.
+          onTap: isFuture ? null : onTap,
+          child: Center(child: Text('${date.day}', style: dayStyle)),
+        ),
+      ),
+    );
+  }
+}
