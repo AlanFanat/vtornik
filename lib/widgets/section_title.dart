@@ -19,3 +19,21 @@ class SectionTitle extends StatelessWidget {
     );
   }
 }
+
+class PageTitle extends StatelessWidget {
+  const PageTitle(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: context.colors.text,
+      ),
+    );
+  }
+}
