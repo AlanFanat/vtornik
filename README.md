@@ -1,4 +1,4 @@
-# Оценщик дней
+# Дневник дней
 
 Flutter-приложение: оценка каждого дня от 1 до 10, теги и заметка. Данные хранятся на устройстве, есть тёмная тема и резервная копия через буфер обмена.
 
@@ -26,9 +26,10 @@ lib/
 ├── data/                          данные и хранение
 │   ├── day_entry.dart             модель одного дня (оценка, теги, заметка)
 │   ├── backup_data.dart           модель резервной копии
-│   └── app_storage.dart           SharedPreferences, JSON, экспорт/импорт копии
+│   ├── app_storage.dart           SharedPreferences, JSON, экспорт/импорт копии
+│   └── diary_controller.dart      логика данных: записи, теги, бэкап (ChangeNotifier)
 ├── features/                      экраны, по папке на каждый
-│   ├── home/home_page.dart        корень: вкладки, состояние, теги, бэкап
+│   ├── home/home_page.dart        корень: вкладки, выбранный день и месяц
 │   ├── calendar/
 │   │   ├── month_calendar.dart    календарь месяца
 │   │   └── day_cell.dart          одна ячейка дня
@@ -58,7 +59,8 @@ lib/
 | формат даты, названия месяцев          | `core/date_format.dart`                   |
 | формат хранения данных, бэкап          | `data/app_storage.dart`                   |
 | поля записи дня                        | `data/day_entry.dart`                     |
-| логику тегов (переименовать, удалить)  | `features/home/home_page.dart`            |
+| логику тегов (переименовать, удалить)  | `data/diary_controller.dart`              |
+| логику восстановления из копии         | `data/diary_controller.dart`              |
 | внешний вид календаря                  | `features/calendar/`                      |
 | редактор дня, автосохранение           | `features/day_editor/day_editor.dart`     |
 | нижнюю навигацию                       | `features/home/home_page.dart`            |
