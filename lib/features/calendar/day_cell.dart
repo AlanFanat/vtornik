@@ -55,7 +55,7 @@ class DayCell extends StatelessWidget {
     final dayStyle = TextStyle(
       fontSize: 14,
       color: foreground,
-      fontWeight: isToday ? FontWeight.w800 : FontWeight.normal,
+      fontWeight: FontWeight.w800,
       // Сегодняшний день подчёркнут: не конфликтует с рамкой выбора.
       decoration: isToday ? TextDecoration.underline : null,
       decorationColor: foreground,
