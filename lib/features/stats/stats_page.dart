@@ -43,9 +43,9 @@ class StatsPage extends StatelessWidget {
       itemCount: sortedEntries.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
-          // 4 px даёт разделитель, ещё 8 — чтобы вышло 12, как в настройках.
+          // 4 px даёт разделитель, ещё 2 — чтобы вышло 6, как в настройках и под заголвком Календарь.
           return const Padding(
-            padding: EdgeInsets.only(bottom: 8),
+            padding: EdgeInsets.only(bottom: 2),
             child: PageTitle('Статистика'),
           );
         }

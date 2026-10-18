@@ -57,7 +57,7 @@ class SettingsPage extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       children: [
         PageTitle('Настройки'),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
 
         _SettingsCard(
           child: SwitchListTile(

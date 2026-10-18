@@ -24,6 +24,8 @@ class MonthCalendar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+
     final today = DateUtils.dateOnly(DateTime.now());
 
     final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
@@ -33,51 +35,59 @@ class MonthCalendar extends StatelessWidget {
     // В будущие месяцы листать нельзя.
     final canGoNext = month.isBefore(DateTime(today.year, today.month));
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _MonthHeader(
-          month: month,
-          onPrevious: () =>
-              onMonthChanged(DateUtils.addMonthsToMonthDate(month, -1)),
-          onNext: canGoNext
-              ? () => onMonthChanged(DateUtils.addMonthsToMonthDate(month, 1))
-              : null,
-        ),
-        const SizedBox(height: 4),
-        const _WeekdayLabels(),
-        const SizedBox(height: 6),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: startOffset + daysInMonth,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-            crossAxisSpacing: 6,
-            mainAxisSpacing: 6,
-            childAspectRatio: 1.4,
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _MonthHeader(
+            month: month,
+            onPrevious: () =>
+                onMonthChanged(DateUtils.addMonthsToMonthDate(month, -1)),
+            onNext: canGoNext
+                ? () => onMonthChanged(DateUtils.addMonthsToMonthDate(month, 1))
+                : null,
           ),
-          itemBuilder: (context, index) {
-            // Пустые ячейки перед первым числом.
-            if (index < startOffset) return const SizedBox.shrink();
+          const SizedBox(height: 4),
+          const _WeekdayLabels(),
+          const SizedBox(height: 6),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: startOffset + daysInMonth,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              crossAxisSpacing: 6,
+              mainAxisSpacing: 6,
+              childAspectRatio: 1.4,
+            ),
+            itemBuilder: (context, index) {
+              // Пустые ячейки перед первым числом.
+              if (index < startOffset) return const SizedBox.shrink();
 
-            final date = DateTime(
-              month.year,
-              month.month,
-              index - startOffset + 1,
-            );
+              final date = DateTime(
+                month.year,
+                month.month,
+                index - startOffset + 1,
+              );
 
-            return DayCell(
-              date: date,
-              rating: entries[date]?.rating,
-              isSelected: date == selectedDate,
-              isToday: date == today,
-              isFuture: date.isAfter(today),
-              onTap: () => onDateSelected(date),
-            );
-          },
-        ),
-      ],
+              return DayCell(
+                date: date,
+                rating: entries[date]?.rating,
+                isSelected: date == selectedDate,
+                isToday: date == today,
+                isFuture: date.isAfter(today),
+                onTap: () => onDateSelected(date),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

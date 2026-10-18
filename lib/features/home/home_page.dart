@@ -77,6 +77,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           PageTitle('Календарь'),
+          const SizedBox(height: 6),
           MonthCalendar(
             month: _visibleMonth,
             selectedDate: _selectedDate,
@@ -88,7 +89,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               setState(() => _selectedDate = date);
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           DayEditor(
             // Новый ключ на каждую дату -> редактор пересоздаётся
             // и подхватывает сохранённую запись этого дня.
