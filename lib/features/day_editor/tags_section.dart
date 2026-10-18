@@ -88,7 +88,7 @@ class _TagChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             // На акценте текст тёмный в любой теме.
-            color: selected ? onAccentColor : colors.text,
+            color: selected ? Colors.white : colors.text,
           ),
         ),
         selected: selected,
