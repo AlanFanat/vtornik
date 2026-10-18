@@ -35,7 +35,7 @@ class DayCell extends StatelessWidget {
 
     // Выбранный день обводим цветом текста: акцент терялся бы на цветных оценках.
     final BorderSide border = isSelected
-        ? BorderSide(color: colors.text, width: 2)
+        ? BorderSide(color: accentColor, width: 2)
         : isFuture
         ? BorderSide(color: colors.cardBorder)
         : BorderSide.none;
