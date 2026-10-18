@@ -14,6 +14,7 @@ class DayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final colors = context.colors;
     final rating = entry.rating;
     final note = entry.note.trim();
     final tags = entry.tags.toList()..sort();
@@ -23,7 +24,7 @@ class DayCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
+        color: colors.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
       ),
