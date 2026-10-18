@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 /// Акцент и цвета текста поверх ярких заливок одинаковы в обеих темах.
 const Color accentColor = Color(0xFF007aff); // акцент (синий)
 const Color onAccentColor = Color(0xFF171717); // текст на акценте
-const Color onRatingColor = Color(0xFF18181C); // текст на цвете оценки
 
 /// Цвета, которые зависят от темы. Достаём их через `context.colors`.
 @immutable
@@ -16,6 +15,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.inputFill,
     required this.text,
     required this.disabledText,
+    required this.onRatingColor,
   });
 
   final Color background; // фон экрана
@@ -25,6 +25,7 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color inputFill; // фон поля заметки и нижней панели
   final Color text; // основной текст
   final Color disabledText; // текст будущих дней
+  final Color onRatingColor; // текст на цвете оценки
 
   static const light = AppColors(
     background: Color(0xFFf5f5f7),
@@ -34,6 +35,7 @@ class AppColors extends ThemeExtension<AppColors> {
     inputFill: Color(0xFFF0F0F4),
     text: Color(0xFF18181C),
     disabledText: Color(0x4D18181C),
+    onRatingColor: Color(0xFF18181C),
   );
 
   static const dark = AppColors(
@@ -44,6 +46,7 @@ class AppColors extends ThemeExtension<AppColors> {
     inputFill: Color(0xFF222227),
     text: Color(0xFFECECEF),
     disabledText: Color(0x4DECECEF),
+    onRatingColor: Color(0xFFECECEF),
   );
 
   @override
@@ -55,6 +58,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? inputFill,
     Color? text,
     Color? disabledText,
+    Color? onRatingColor,
   }) {
     return AppColors(
       background: background ?? this.background,
@@ -64,6 +68,7 @@ class AppColors extends ThemeExtension<AppColors> {
       inputFill: inputFill ?? this.inputFill,
       text: text ?? this.text,
       disabledText: disabledText ?? this.disabledText,
+      onRatingColor: onRatingColor ?? this.onRatingColor,
     );
   }
 
@@ -78,6 +83,7 @@ class AppColors extends ThemeExtension<AppColors> {
       inputFill: Color.lerp(inputFill, other.inputFill, t)!,
       text: Color.lerp(text, other.text, t)!,
       disabledText: Color.lerp(disabledText, other.disabledText, t)!,
+      onRatingColor: Color.lerp(onRatingColor, other.onRatingColor, t)!,
     );
   }
 }

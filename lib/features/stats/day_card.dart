@@ -120,7 +120,7 @@ class _Header extends StatelessWidget {
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: rating != null ? onRatingColor : colors.disabledText,
+              color: rating != null ? colors.onRatingColor : colors.disabledText,
             ),
           ),
         ),

@@ -69,7 +69,7 @@ class _RatingTile extends StatelessWidget {
                 '$rating',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? onRatingColor : colors.text,
+                  color: isSelected ? colors.onRatingColor : colors.text,
                 ),
               ),
             ),

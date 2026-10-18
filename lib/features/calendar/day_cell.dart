@@ -49,7 +49,7 @@ class DayCell extends StatelessWidget {
     final Color foreground = isFuture
         ? colors.disabledText
         : rating != null
-        ? onRatingColor
+        ? colors.onRatingColor
         : colors.text;
 
     final dayStyle = TextStyle(
