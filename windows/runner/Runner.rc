@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "dayly" "\0"
+            VALUE "FileDescription", "vtornik" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "dayly" "\0"
+            VALUE "InternalName", "vtornik" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "dayly.exe" "\0"
-            VALUE "ProductName", "dayly" "\0"
+            VALUE "OriginalFilename", "vtornik.exe" "\0"
+            VALUE "ProductName", "vtornik" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

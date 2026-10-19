@@ -1,4 +1,4 @@
-import 'package:dayly/widgets/section_title.dart';
+import 'package:vtornik/widgets/section_title.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
