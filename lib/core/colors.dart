@@ -16,6 +16,8 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.text,
     required this.disabledText,
     required this.onRatingColor,
+    required this.navIndicator,
+    required this.navInactive,
   });
 
   final Color background; // фон экрана
@@ -26,6 +28,8 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color text; // основной текст
   final Color disabledText; // текст будущих дней
   final Color onRatingColor; // текст на цвете оценки
+  final Color navIndicator; // индикатор навигации
+  final Color navInactive; // неактивная навигация
 
   static const light = AppColors(
     background: Color(0xFFf5f5f7),
@@ -36,6 +40,8 @@ class AppColors extends ThemeExtension<AppColors> {
     text: Color(0xFF18181C),
     disabledText: Color(0x4D18181C),
     onRatingColor: Color(0xFFECECEF),
+    navIndicator: Color(0x26007AFF), // синий 15%
+    navInactive: Color(0xFF6B7280),
   );
 
   static const dark = AppColors(
@@ -47,6 +53,8 @@ class AppColors extends ThemeExtension<AppColors> {
     text: Color(0xFFECECEF),
     disabledText: Color(0x4DECECEF),
     onRatingColor: Color(0xFFECECEF),
+    navIndicator: Color(0x33007AFF), // синий 20%
+    navInactive: Color(0xFF9CA3AF),
   );
 
   @override
@@ -59,6 +67,8 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? text,
     Color? disabledText,
     Color? onRatingColor,
+    Color? navIndicator,
+    Color? navInactive,
   }) {
     return AppColors(
       background: background ?? this.background,
@@ -69,6 +79,8 @@ class AppColors extends ThemeExtension<AppColors> {
       text: text ?? this.text,
       disabledText: disabledText ?? this.disabledText,
       onRatingColor: onRatingColor ?? this.onRatingColor,
+      navIndicator: navIndicator ?? this.navIndicator,
+      navInactive: navInactive ?? this.navInactive,
     );
   }
 
@@ -84,6 +96,8 @@ class AppColors extends ThemeExtension<AppColors> {
       text: Color.lerp(text, other.text, t)!,
       disabledText: Color.lerp(disabledText, other.disabledText, t)!,
       onRatingColor: Color.lerp(onRatingColor, other.onRatingColor, t)!,
+      navIndicator: Color.lerp(navIndicator, other.navIndicator, t)!,
+      navInactive: Color.lerp(navInactive, other.navInactive, t)!,
     );
   }
 }

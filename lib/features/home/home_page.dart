@@ -138,27 +138,28 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             ),
           ),
         ),
-        bottomNavigationBar: NavigationBar(
-          height: 70,
-          backgroundColor: colors.card,
-          indicatorColor: accentColor,
-          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-          selectedIndex: _navIndex,
-          onDestinationSelected: (index) => setState(() => _navIndex = index),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.calendar_month),
-              label: 'Календарь',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.bar_chart),
-              label: 'Статистика',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.settings),
-              label: 'Настройки',
-            ),
-          ],
+        bottomNavigationBar: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: colors.cardBorder)),
+          ),
+          child: NavigationBar(
+            selectedIndex: _navIndex,
+            onDestinationSelected: (index) => setState(() => _navIndex = index),
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.calendar_month),
+                label: 'Календарь',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.bar_chart),
+                label: 'Статистика',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.settings),
+                label: 'Настройки',
+              ),
+            ],
+          ),
         ),
       ),
     );
