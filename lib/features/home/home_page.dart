@@ -113,9 +113,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       // Иконки статус-бара должны быть контрастны фону.
-      value: widget.isDarkTheme
-          ? SystemUiOverlayStyle.light
-          : SystemUiOverlayStyle.dark,
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: widget.isDarkTheme
+            ? Brightness.light
+            : Brightness.dark,
+        systemNavigationBarColor: colors.card,
+        systemNavigationBarIconBrightness: widget.isDarkTheme
+            ? Brightness.light
+            : Brightness.dark,
+        systemNavigationBarContrastEnforced: false, // убирает серую подложку
+      ),
       child: Scaffold(
         body: SafeArea(
           // ListenableBuilder перерисовывает вкладки при изменении данных.
