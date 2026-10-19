@@ -39,7 +39,7 @@ class AppColors extends ThemeExtension<AppColors> {
     inputFill: Color(0xFFF0F0F4),
     text: Color(0xFF18181C),
     disabledText: Color(0x4D18181C),
-    onRatingColor: Color(0xFFECECEF),
+    onRatingColor: Color(0xFFFFFFFF),
     navIndicator: Color(0x26007AFF), // синий 15%
     navInactive: Color(0xFF6B7280),
   );
