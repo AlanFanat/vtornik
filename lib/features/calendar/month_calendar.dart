@@ -82,6 +82,7 @@ class MonthCalendar extends StatelessWidget {
                 isSelected: date == selectedDate,
                 isToday: date == today,
                 isFuture: date.isAfter(today),
+                hasDetails: entries[date]?.hasDetails ?? false,
                 onTap: () => onDateSelected(date),
               );
             },

@@ -11,6 +11,7 @@ class DayCell extends StatelessWidget {
     required this.isSelected,
     required this.isToday,
     required this.isFuture,
+    required this.hasDetails,
     required this.onTap,
   });
 
@@ -19,6 +20,8 @@ class DayCell extends StatelessWidget {
   final bool isSelected;
   final bool isToday;
   final bool isFuture;
+  final bool
+  hasDetails; //Для отличия дня, у которого стоит заметка или тег, но не стоит оценка
   final VoidCallback onTap;
 
   @override
@@ -52,6 +55,8 @@ class DayCell extends StatelessWidget {
         ? colors.onRatingColor
         : colors.text;
 
+    final bool detailsWithoutRating = hasDetails && rating == null;
+
     final dayStyle = TextStyle(
       fontSize: 14,
       color: foreground,
@@ -70,6 +75,8 @@ class DayCell extends StatelessWidget {
           ? '${date.day}, день ещё не наступил'
           : rating != null
           ? '${date.day}, оценка $rating'
+          : detailsWithoutRating
+          ? '${date.day}, без оценки, с записью'
           : '${date.day}, без оценки',
       child: Material(
         color: background,
@@ -78,7 +85,27 @@ class DayCell extends StatelessWidget {
           customBorder: shape,
           // null у будущих дней: ни нажатия, ни ряби.
           onTap: isFuture ? null : onTap,
-          child: Center(child: Text('${date.day}', style: dayStyle)),
+          child: Stack(
+            children: [
+              Center(child: Text('${date.day}', style: dayStyle)),
+              if (detailsWithoutRating)
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: SizedBox.square(
+                      dimension: 3,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: foreground,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

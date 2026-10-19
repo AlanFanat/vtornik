@@ -13,6 +13,9 @@ class DayEntry {
   /// В пустой записи нет ничего, её не храним.
   bool get isEmpty => rating == null && tags.isEmpty && note.isEmpty;
 
+  // Есть заметка или теги (оценка не учитывается)
+  bool get hasDetails => tags.isNotEmpty || note.isNotEmpty; 
+
   DayEntry withTags(Set<String> tags) {
     return DayEntry(rating: rating, tags: tags, note: note);
   }
