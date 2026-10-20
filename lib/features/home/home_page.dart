@@ -1,7 +1,7 @@
-import 'package:vtornik/widgets/section_title.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../widgets/section_title.dart';
 import '../../core/colors.dart';
 import '../../data/app_storage.dart';
 import '../../data/diary_controller.dart';
