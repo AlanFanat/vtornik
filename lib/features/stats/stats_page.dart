@@ -6,9 +6,11 @@ import 'day_card.dart';
 
 /// Пока это лента прошлых дней; настоящая статистика появится позже.
 class StatsPage extends StatelessWidget {
-  const StatsPage({super.key, required this.entries});
+  const StatsPage({super.key, required this.entries, required this.onDaySelected});
 
   final Map<DateTime, DayEntry> entries;
+
+  final ValueChanged<DateTime> onDaySelected;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +53,11 @@ class StatsPage extends StatelessWidget {
         }
 
         final item = sortedEntries[index - 1];
-        return DayCard(date: item.key, entry: item.value);
+        return DayCard(
+          date: item.key,
+          entry: item.value,
+          onTap: () => onDaySelected(item.key),
+        );
       },
       separatorBuilder: (context, index) => const SizedBox(height: 4),
     );

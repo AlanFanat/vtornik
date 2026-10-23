@@ -6,10 +6,17 @@ import '../../data/day_entry.dart';
 
 /// Карточка одного дня: дата, оценка, заметка и теги.
 class DayCard extends StatelessWidget {
-  const DayCard({super.key, required this.date, required this.entry});
+  const DayCard({
+    super.key,
+    required this.date,
+    required this.entry,
+    required this.onTap,
+  });
 
   final DateTime date;
   final DayEntry entry;
+
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -20,49 +27,54 @@ class DayCard extends StatelessWidget {
     final tags = entry.tags.toList()..sort();
 
     // Цветная полоска слева и плитка оценки: цвет оценки или нейтральный серый.
-    final accent = rating != null ? ratingColor(rating) : context.colors.surface;
+    final accent = rating != null
+        ? ratingColor(rating)
+        : context.colors.surface;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.card,
+    return Material(
+      color: colors.card,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(width: 6, color: accent),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _Header(date: date, rating: rating, color: accent),
-                    if (note.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        note,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 14, height: 1.35),
-                      ),
+      child: InkWell(
+        onTap: onTap,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 6, color: accent),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _Header(date: date, rating: rating, color: accent),
+                      if (note.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          note,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 14, height: 1.35),
+                        ),
+                      ],
+                      if (tags.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 5,
+                          runSpacing: 4,
+                          children: [for (final tag in tags) _TagLabel(tag)],
+                        ),
+                      ],
                     ],
-                    if (tags.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 5,
-                        runSpacing: 4,
-                        children: [for (final tag in tags) _TagLabel(tag)],
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -120,7 +132,9 @@ class _Header extends StatelessWidget {
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
-              color: rating != null ? colors.onRatingColor : colors.disabledText,
+              color: rating != null
+                  ? colors.onRatingColor
+                  : colors.disabledText,
             ),
           ),
         ),

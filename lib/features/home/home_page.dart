@@ -67,6 +67,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     });
   }
 
+  void openDay(DateTime date) {
+    setState(() {
+      _selectedDate = date;
+      _visibleMonth = DateTime(date.year, date.month);
+      _navIndex = 0;
+    });
+  }
+
   // ----- Экран -----
 
   Widget _buildCalendarTab() {
@@ -135,7 +143,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               index: _navIndex,
               children: [
                 _buildCalendarTab(),
-                StatsPage(entries: _diary.entries),
+                StatsPage(entries: _diary.entries, onDaySelected: openDay,),
                 SettingsPage(
                   isDarkTheme: widget.isDarkTheme,
                   onDarkThemeChanged: widget.onDarkThemeChanged,
