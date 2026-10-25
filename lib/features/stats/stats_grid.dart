@@ -32,46 +32,64 @@ class StatsGrid extends StatelessWidget {
     // Форматирование среднего: 4.333... → "4.3"
     final averageText = averageRating.toStringAsFixed(1).replaceAll('.', ',');
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true, // если GridView внутри Column/SingleChildScrollView
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.7,
+    return Column(
       children: [
-        StatCard(
-          title: 'Средний балл',
-          value: averageText,
-          bottomText: 'Из 10,0 возможных',
-          iconData: Icons.trending_up_rounded,
-          mainColor: ratingsOnly.isEmpty
-              ? colors.disabledText
-              : ratingColor(averageRating.round()),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: StatCard(
+                  title: 'Средний балл',
+                  value: averageText,
+                  bottomText: 'Из 10,0 возможных',
+                  iconData: Icons.trending_up_rounded,
+                  mainColor: ratingsOnly.isEmpty
+                      ? colors.disabledText
+                      : ratingColor(averageRating.round()),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: StatCard(
+                  title: 'Всего дней',
+                  value: '$daysCount',
+                  bottomText: 'Оценено: $ratingDaysCount',
+                  iconData: Icons.event_note_rounded,
+                  mainColor: accentColor,
+                ),
+              ),
+            ],
+          ),
         ),
-        StatCard(
-          title: 'Всего дней',
-          value: '$daysCount',
-          bottomText: 'Оценено: $ratingDaysCount',
-          iconData: Icons.event_note_rounded,
-          mainColor: accentColor,
-        ),
-        StatCard(
-          title: 'Отличных дней',
-          value: '$goodDaysCount',
-          bottomText: 'Оценка ≥ 8',
-          iconData: Icons.thumb_up_rounded,
-          mainColor: ratingColor(10),
-        ),
-        StatCard(
-          title: 'Плохих дней',
-          value: '$badDaysCount',
-          bottomText: 'Оценка ≤ 4',
-          iconData: Icons.thumb_down_rounded,
-          mainColor: ratingColor(1),
+        const SizedBox(height: 12),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: StatCard(
+                  title: 'Отличных дней',
+                  value: '$goodDaysCount',
+                  bottomText: 'Оценка ≥ 8',
+                  iconData: Icons.thumb_up_rounded,
+                  mainColor: ratingColor(10),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: StatCard(
+                  title: 'Плохих дней',
+                  value: '$badDaysCount',
+                  bottomText: 'Оценка ≤ 4',
+                  iconData: Icons.thumb_down_rounded,
+                  mainColor: ratingColor(1),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 }
-
