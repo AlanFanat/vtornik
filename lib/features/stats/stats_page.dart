@@ -3,10 +3,15 @@ import 'package:flutter/material.dart';
 import '../../data/day_entry.dart';
 import '../../widgets/section_title.dart';
 import 'day_card.dart';
+import 'stats_grid.dart';
 
 /// Пока это лента прошлых дней; настоящая статистика появится позже.
 class StatsPage extends StatelessWidget {
-  const StatsPage({super.key, required this.entries, required this.onDaySelected});
+  const StatsPage({
+    super.key,
+    required this.entries,
+    required this.onDaySelected,
+  });
 
   final Map<DateTime, DayEntry> entries;
 
@@ -42,7 +47,7 @@ class StatsPage extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(10),
       // +1: нулевой элемент списка — заголовок, он прокручивается вместе с днями.
-      itemCount: sortedEntries.length + 1,
+      itemCount: sortedEntries.length + 2,
       itemBuilder: (context, index) {
         if (index == 0) {
           // 4 px даёт разделитель, ещё 2 — чтобы вышло 6, как в настройках и под заголвком Календарь.
@@ -52,7 +57,14 @@ class StatsPage extends StatelessWidget {
           );
         }
 
-        final item = sortedEntries[index - 1];
+        if (index == 1) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: 2),
+            child: StatsGrid(days: entries.values.toList()),
+          );
+        }
+
+        final item = sortedEntries[index - 2];
         return DayCard(
           date: item.key,
           entry: item.value,
@@ -63,3 +75,4 @@ class StatsPage extends StatelessWidget {
     );
   }
 }
+
