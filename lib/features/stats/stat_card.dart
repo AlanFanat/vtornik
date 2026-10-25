@@ -22,7 +22,7 @@ class StatCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final colors = context.colors;
     return Container(
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.only(bottom: 10, top: 10, right: 10, left: 10),
       decoration: BoxDecoration(
         color: colors.card,
         borderRadius: BorderRadius.circular(10),
@@ -39,7 +39,7 @@ class StatCard extends StatelessWidget {
                 child: Text(
                   title,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: colors.text, fontSize: 13),
+                  style: TextStyle(color: colors.text, fontSize: 15, fontWeight: FontWeight.w700),
                 ),
               ),
               Icon(iconData, size: 20, color: mainColor),

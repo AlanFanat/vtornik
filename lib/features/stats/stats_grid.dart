@@ -49,7 +49,7 @@ class StatsGrid extends StatelessWidget {
                       : ratingColor(averageRating.round()),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 6),
               Expanded(
                 child: StatCard(
                   title: 'Всего дней',
@@ -62,7 +62,7 @@ class StatsGrid extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -76,7 +76,7 @@ class StatsGrid extends StatelessWidget {
                   mainColor: ratingColor(10),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 6),
               Expanded(
                 child: StatCard(
                   title: 'Плохих дней',
