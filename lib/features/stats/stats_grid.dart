@@ -54,7 +54,7 @@ class StatsGrid extends StatelessWidget {
                 child: StatCard(
                   title: 'Всего дней',
                   value: '$daysCount',
-                  bottomText: 'Оценено: $ratingDaysCount',
+                  bottomText: 'С оценкой: $ratingDaysCount',
                   iconData: Icons.event_note_rounded,
                   mainColor: accentColor,
                 ),
@@ -79,7 +79,7 @@ class StatsGrid extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: StatCard(
-                  title: 'Плохих дней',
+                  title: 'Трудных дней',
                   value: '$badDaysCount',
                   bottomText: 'Оценка ≤ 4',
                   iconData: Icons.thumb_down_rounded,
