@@ -82,7 +82,7 @@ class StatsGrid extends StatelessWidget {
                 child: StatCard(
                   title: 'Трудных дней',
                   value: '$badDaysCount',
-                  bottomText: 'Оценка ≤ 4',
+                  bottomText: 'Оценка ≤ 3',
                   iconData: Icons.thumb_down_rounded,
                   mainColor: ratingColor(1),
                 ),
