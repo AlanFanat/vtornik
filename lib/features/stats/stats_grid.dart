@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/colors.dart';
+import '../../core/format_number.dart';
 import '../../data/day_entry.dart';
 import '../../features/stats/stat_card.dart';
 
@@ -30,7 +31,7 @@ class StatsGrid extends StatelessWidget {
     final int badDaysCount = ratingsOnly.where((r) => r <= 3).length;
 
     // Форматирование среднего: 4.333... → "4.3"
-    final averageText = averageRating.toStringAsFixed(1).replaceAll('.', ',');
+    final averageText = formatAverage(averageRating);
 
     return Column(
       children: [
