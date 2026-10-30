@@ -4,6 +4,7 @@ import '../../data/day_entry.dart';
 import '../../widgets/section_title.dart';
 import 'day_card.dart';
 import 'stats_grid.dart';
+import 'stats_tags.dart';
 
 /// Пока это лента прошлых дней; настоящая статистика появится позже.
 class StatsPage extends StatelessWidget {
@@ -47,24 +48,14 @@ class StatsPage extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(10),
       // +1: нулевой элемент списка — заголовок, он прокручивается вместе с днями.
-      itemCount: sortedEntries.length + 2,
+      itemCount: sortedEntries.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
           // 4 px даёт разделитель, ещё 2 — чтобы вышло 6, как в настройках и под заголвком Календарь.
-          return const Padding(
-            padding: EdgeInsets.only(bottom: 2),
-            child: PageTitle('Статистика'),
-          );
+          return _StatsHeader(entries: entries);
         }
 
-        if (index == 1) {
-          return Padding(
-            padding: EdgeInsets.only(bottom: 2),
-            child: StatsGrid(days: entries.values.toList()),
-          );
-        }
-
-        final item = sortedEntries[index - 2];
+        final item = sortedEntries[index - 1];
         return DayCard(
           date: item.key,
           entry: item.value,
@@ -76,3 +67,23 @@ class StatsPage extends StatelessWidget {
   }
 }
 
+class _StatsHeader extends StatelessWidget {
+  const _StatsHeader({required this.entries});
+
+  final Map<DateTime, DayEntry> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const PageTitle('Статистика'),
+        const SizedBox(height: 6),
+        StatsGrid(days: entries.values.toList()),
+        const SizedBox(height: 12),
+        StatsTags(days: entries.values.toList()),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+}
