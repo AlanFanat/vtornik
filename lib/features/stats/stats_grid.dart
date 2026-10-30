@@ -27,7 +27,7 @@ class StatsGrid extends StatelessWidget {
     final int daysCount = days.length; // всего (включая null)
     final int ratingDaysCount = ratingsOnly.length; // с оценкой
     final int goodDaysCount = ratingsOnly.where((r) => r >= 8).length;
-    final int badDaysCount = ratingsOnly.where((r) => r <= 4).length;
+    final int badDaysCount = ratingsOnly.where((r) => r <= 3).length;
 
     // Форматирование среднего: 4.333... → "4.3"
     final averageText = averageRating.toStringAsFixed(1).replaceAll('.', ',');
