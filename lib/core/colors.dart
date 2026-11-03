@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 /// Акцент и цвета текста поверх ярких заливок одинаковы в обеих темах.
 const Color accentColor = Color(0xFF007aff); // акцент (синий)
 const Color onAccentColor = Color(0xFF171717); // текст на акценте
+const Color impactPositiveColor = Color(0xFF10B981); // положительное влияние тега (зелёный)
+const Color impactNegativeColor = Color(0xFFF43F5E); // отрицательное влияние тега (красный)
 
 /// Цвета, которые зависят от темы. Достаём их через `context.colors`.
 @immutable
