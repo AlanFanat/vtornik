@@ -5,6 +5,7 @@ import '../../widgets/section_title.dart';
 import 'day_card.dart';
 import 'stats_grid.dart';
 import 'stats_tags.dart';
+import 'stats_weekdays.dart';
 
 /// Пока это лента прошлых дней; настоящая статистика появится позже.
 class StatsPage extends StatelessWidget {
@@ -80,6 +81,8 @@ class _StatsHeader extends StatelessWidget {
         const PageTitle('Статистика'),
         const SizedBox(height: 6),
         StatsGrid(days: entries.values.toList()),
+        const SizedBox(height: 12),
+        StatsWeekdays(entries: entries),
         const SizedBox(height: 12),
         StatsTags(days: entries.values.toList()),
         const SizedBox(height: 12),
