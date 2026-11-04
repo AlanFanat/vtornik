@@ -12,6 +12,7 @@ class MonthCalendar extends StatelessWidget {
     required this.selectedDate,
     required this.entries,
     required this.onMonthChanged,
+    required this.onToday,
     required this.onDateSelected,
   });
 
@@ -20,6 +21,7 @@ class MonthCalendar extends StatelessWidget {
   final DateTime selectedDate;
   final Map<DateTime, DayEntry> entries;
   final ValueChanged<DateTime> onMonthChanged;
+  final VoidCallback onToday;
   final ValueChanged<DateTime> onDateSelected;
 
   @override
@@ -47,11 +49,13 @@ class MonthCalendar extends StatelessWidget {
         children: [
           _MonthHeader(
             month: month,
+            showToday: month.year != today.year || month.month != today.month,
             onPrevious: () =>
                 onMonthChanged(DateUtils.addMonthsToMonthDate(month, -1)),
             onNext: canGoNext
                 ? () => onMonthChanged(DateUtils.addMonthsToMonthDate(month, 1))
                 : null,
+            onToday: onToday,
           ),
           const SizedBox(height: 4),
           const _WeekdayLabels(),
@@ -97,23 +101,36 @@ class MonthCalendar extends StatelessWidget {
 class _MonthHeader extends StatelessWidget {
   const _MonthHeader({
     required this.month,
+    required this.showToday,
     required this.onPrevious,
     required this.onNext,
+    required this.onToday,
   });
 
   final DateTime month;
+  final bool showToday;
   final VoidCallback onPrevious;
   final VoidCallback? onNext;
+  final VoidCallback onToday;
 
   @override
   Widget build(BuildContext context) {
+    const buttonSize = 40.0;
+    final buttonConstraints = BoxConstraints.tightFor(
+      width: buttonSize,
+      height: kMinInteractiveDimension,
+    );
+
     return Row(
       children: [
         IconButton(
+          constraints: buttonConstraints,
+          padding: EdgeInsets.zero,
           tooltip: 'Предыдущий месяц',
           icon: const Icon(Icons.chevron_left),
           onPressed: onPrevious,
         ),
+        const SizedBox(width: buttonSize),
         Expanded(
           child: Center(
             child: Text(
@@ -126,7 +143,19 @@ class _MonthHeader extends StatelessWidget {
             ),
           ),
         ),
+        if (showToday)
+          IconButton(
+            constraints: buttonConstraints,
+            padding: EdgeInsets.zero,
+            tooltip: 'Сегодня',
+            icon: const Icon(Icons.today),
+            onPressed: onToday,
+          )
+        else
+          const SizedBox(width: buttonSize),
         IconButton(
+          constraints: buttonConstraints,
+          padding: EdgeInsets.zero,
           tooltip: 'Следующий месяц',
           icon: const Icon(Icons.chevron_right),
           onPressed: onNext,

@@ -75,6 +75,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     });
   }
 
+  void _goToToday() {
+    final today = DateUtils.dateOnly(DateTime.now());
+    setState(() {
+      _today = today;
+      _selectedDate = today;
+      _visibleMonth = DateTime(today.year, today.month);
+    });
+  }
+
   // ----- Экран -----
 
   Widget _buildCalendarTab() {
@@ -93,6 +102,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             onMonthChanged: (month) {
               setState(() => _visibleMonth = month);
             },
+            onToday: _goToToday,
             onDateSelected: (date) {
               setState(() => _selectedDate = date);
             },
