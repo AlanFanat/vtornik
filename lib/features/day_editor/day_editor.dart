@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -140,10 +140,14 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
     final existing = widget.availableTags
         .where((tag) => tag.toLowerCase() == name.toLowerCase())
         .firstOrNull;
-    if (existing == null) widget.onAddTag(name);
-
-    setState(() => _tags.add(existing ?? name));
-    unawaited(_saveNow());
+    if (existing != null) {
+      // Дубликат — выбираем существующий тег для текущего дня.
+      setState(() => _tags.add(existing));
+      unawaited(_saveNow());
+    } else {
+      // Новый тег — только добавляем в общий список, без автовыбора.
+      widget.onAddTag(name);
+    }
   }
 
   Future<void> _manageTag(String tag) async {
