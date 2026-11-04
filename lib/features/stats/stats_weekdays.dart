@@ -112,30 +112,39 @@ class _WeekdayBar extends StatelessWidget {
     final colors = context.colors;
     final value = average;
 
+    const double maxBarHeight = 100;
+    final barHeight = value == null ? 0.0 : (maxBarHeight * (value / 10)).clamp(0.0, maxBarHeight);
+
     return Column(
       children: [
-        Text(
-          value == null ? '—' : formatAverage(value),
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: value == null ? Colors.grey : colors.text,
-          ),
-        ),
-        const SizedBox(height: 4),
         SizedBox(
-          height: 128,
+          height: 126,
           child: Align(
             alignment: Alignment.bottomCenter,
-            child: Container(
-              // width: 16,
-              height: value == null ? 0 : 128 * value / 10,
-              decoration: BoxDecoration(
-                color: value == null ? Colors.transparent : ratingColor(value.round()),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(5),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  value == null ? '—' : formatAverage(value),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: value == null ? Colors.grey : colors.text,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 4),
+                Container(
+                  height: barHeight,
+                  decoration: BoxDecoration(
+                    color: value == null
+                        ? Colors.transparent
+                        : ratingColor(value.round()),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(5),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
