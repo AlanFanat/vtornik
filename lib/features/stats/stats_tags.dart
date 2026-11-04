@@ -4,7 +4,6 @@ import '../../core/colors.dart';
 import '../../core/constants.dart';
 import '../../core/format_number.dart';
 import '../../data/day_entry.dart';
-import '../../widgets/section_title.dart';
 import 'tag_stat.dart';
 
 /// Блок «Теги»: средняя оценка дней с тегом и влияние тега на оценку.
@@ -20,14 +19,6 @@ class StatsTags extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle('Влияние тегов'),
-        if (stats.isEmpty)
-                const Text(
-                  'Пока нет тегов',
-                  style: TextStyle(color: Colors.grey),
-                )
-        else ...[
-        const SizedBox(height: 4),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -37,12 +28,56 @@ class StatsTags extends StatelessWidget {
           ),
           child: Column(
             spacing: 8,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final stat in stats) _TagStatRow(stat: stat),
+              _TagStatsHeader(textColor: colors.text),
+              if (stats.isEmpty)
+                const Text(
+                  'Пока нет тегов',
+                  style: TextStyle(color: Colors.grey),
+                )
+              else
+                for (final stat in stats) _TagStatRow(stat: stat),
             ],
           ),
         ),
-      ],]
+      ],
+    );
+  }
+}
+
+class _TagStatsHeader extends StatelessWidget {
+  const _TagStatsHeader({required this.textColor});
+
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.insights_rounded, color: textColor, size: 24),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Влияние тегов',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 2),
+              const Text(
+                'Разница средней оценки в дни с тегом и без него.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
