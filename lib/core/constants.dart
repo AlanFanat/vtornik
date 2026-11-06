@@ -7,7 +7,7 @@ const int maxTagLength = 20;
 const Duration noteSaveDelay = Duration(milliseconds: 400);
 
 /// Минимум оценённых дней в каждой группе, чтобы показывать влияние тега.
-const int minTagDays = 3;
+const int minTagDays = 1;
 
 /// Разница оценок в пределах ±этого значения считается «нейтральной».
 const double neutralImpact = 0.3;
