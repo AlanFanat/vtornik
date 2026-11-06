@@ -21,6 +21,7 @@ class DayEditor extends StatefulWidget {
     required this.onAddTag,
     required this.onRenameTag,
     required this.onDeleteTag,
+    required this.onDone,
     required this.onChanged,
   });
 
@@ -30,6 +31,8 @@ class DayEditor extends StatefulWidget {
   final ValueChanged<String> onAddTag;
   final void Function(String from, String to) onRenameTag;
   final ValueChanged<String> onDeleteTag;
+
+  final VoidCallback? onDone;
 
   /// Вызывается при каждом изменении дня. Возвращает true,
   /// если запись удалось сохранить на устройство.
@@ -258,6 +261,19 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
               ),
             ),
           ),
+          if (widget.onDone != null) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton(
+                onPressed: () async {
+                  await _saveNow(); // не ждём таймер заметки
+                  widget.onDone!();
+                },
+                child: const Text('Готово'),
+              ),
+            ),
+          ],
         ],
       ),
     );

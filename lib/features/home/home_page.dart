@@ -7,6 +7,7 @@ import '../../data/app_storage.dart';
 import '../../data/diary_controller.dart';
 import '../calendar/month_calendar.dart';
 import '../day_editor/day_editor.dart';
+import '../stats/day_card.dart';
 import '../settings/settings_page.dart';
 import '../stats/stats_page.dart';
 
@@ -62,14 +63,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     setState(() {
       _today = today;
-      _selectedDate = today;
+      _select(today);
       _visibleMonth = DateTime(today.year, today.month);
     });
   }
 
+  bool _formOpen = false; // раскрыта ли форма для выбранного дня
+  bool _canCollapse = false; // форма открыта карандашом -> показываем «Готово»
+
+  /// Единственное место, где меняется выбранный день. Режим формы/карточки
+  /// определяется здесь, а не при каждой перерисовке.
+  void _select(DateTime date) {
+    _selectedDate = date;
+
+    final e = _diary.entries[date];
+    final todayEntry = _diary.entries[_today];
+    final todayEmpty = todayEntry == null || todayEntry.isEmpty;
+    final isYesterday = date == DateUtils.addDaysToDate(_today, -1);
+
+    _formOpen =
+        date ==
+            _today // сегодня: всегда форма
+            ||
+        (isYesterday && todayEmpty) // вчера: форма, только если сегодня пустой
+        ||
+        e == null ||
+        e.isEmpty; // любой пустой день: форма
+    _canCollapse = false;
+  }
+
   void openDay(DateTime date) {
     setState(() {
-      _selectedDate = date;
+      _select(date);
       _visibleMonth = DateTime(date.year, date.month);
       _navIndex = 0;
     });
@@ -79,7 +104,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final today = DateUtils.dateOnly(DateTime.now());
     setState(() {
       _today = today;
-      _selectedDate = today;
+      _select(today);
       _visibleMonth = DateTime(today.year, today.month);
     });
   }
@@ -104,24 +129,47 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             },
             onToday: _goToToday,
             onDateSelected: (date) {
-              setState(() => _selectedDate = date);
+              setState(() => _select(date));
             },
           ),
           const SizedBox(height: 6),
-          DayEditor(
-            // Новый ключ на каждую дату -> редактор пересоздаётся
-            // и подхватывает сохранённую запись этого дня.
-            key: ValueKey('$_selectedDate#${_diary.revision}'),
-            selectedDate: _selectedDate,
-            entry: _diary.entries[_selectedDate],
-            availableTags: _diary.tags,
-            onAddTag: _diary.addTag,
-            onRenameTag: _diary.renameTag,
-            onDeleteTag: _diary.deleteTag,
-            onChanged: _diary.saveEntry,
-          ),
+          _buildDayPanel(),
         ],
       ),
+    );
+  }
+
+  Widget _buildDayPanel() {
+    final date = _selectedDate;
+    //if (date.isAfter(_today)) return const FutureDayNote();
+
+    final entry = _diary.entries[date];
+    if (date == _today || _formOpen || entry == null) {
+      return DayEditor(
+        key: ValueKey('$date#${_diary.revision}'),
+        selectedDate: date,
+        entry: entry,
+        availableTags: _diary.tags,
+        onAddTag: _diary.addTag,
+        onRenameTag: _diary.renameTag,
+        onDeleteTag: _diary.deleteTag,
+        onChanged: _diary.saveEntry,
+        onDone: _canCollapse
+            ? () => setState(() {
+                _formOpen = false;
+                _canCollapse = false;
+              })
+            : null,
+      );
+    }
+
+    return DayCard(
+      date: date,
+      entry: entry,
+      onTap: () => setState(() {
+        _formOpen = true;
+        _canCollapse = true;
+      }),
     );
   }
 
@@ -153,7 +201,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               index: _navIndex,
               children: [
                 _buildCalendarTab(),
-                StatsPage(entries: _diary.entries, onDaySelected: openDay,),
+                StatsPage(entries: _diary.entries, onDaySelected: openDay),
                 SettingsPage(
                   isDarkTheme: widget.isDarkTheme,
                   onDarkThemeChanged: widget.onDarkThemeChanged,
