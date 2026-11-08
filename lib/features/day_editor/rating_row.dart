@@ -43,7 +43,7 @@ class _RatingTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(8),
     );
 
     return Semantics(
@@ -51,25 +51,32 @@ class _RatingTile extends StatelessWidget {
       selected: isSelected,
       excludeSemantics: true,
       label: 'Оценка $rating из 10',
-      child: Material(
-        // Без анимации: цвет оценки появляется сразу, а не проявляется из серого.
-        animationDuration: Duration.zero,
-        color: isSelected ? ratingColor(rating) : colors.surface,
-        shape: shape,
-        child: InkWell(
-          customBorder: shape,
-          onTap: onTap,
-          // Без ряби и затемнения при нажатии: именно они давали «тусклый» цвет.
-          splashFactory: NoSplash.splashFactory,
-          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-          child: SizedBox(
-            height: 40,
-            child: Center(
-              child: Text(
-                '$rating',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isSelected ? colors.onRatingColor : colors.text,
+      child: AnimatedScale(
+        scale: isSelected ? 1.10 : 1.0, // Увеличение при выборе
+        alignment: Alignment.bottomCenter,
+        duration: const Duration(milliseconds: 0),
+        curve: Curves.easeOut,
+        child: Opacity(
+          opacity: isSelected ? 1.0 : 0.5,
+          child: Material(
+            animationDuration: Duration.zero,
+            color: ratingColor(rating),
+            shape: shape,
+            child: InkWell(
+              customBorder: shape,
+              onTap: onTap,
+              splashFactory: NoSplash.splashFactory,
+              overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+              child: SizedBox(
+                height: 40,
+                child: Center(
+                  child: Text(
+                    '$rating',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: colors.onRatingColor,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -79,3 +86,7 @@ class _RatingTile extends StatelessWidget {
     );
   }
 }
+///
+////
+///
+///
