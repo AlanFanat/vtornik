@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/colors.dart';
 import '../../core/constants.dart';
 import '../../data/day_entry.dart';
-//import '../../widgets/day_title.dart';
+import '../../widgets/day_title.dart';
 import '../../widgets/section_title.dart';
 import 'rating_row.dart';
 import 'save_indicator.dart';
@@ -214,7 +214,7 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          //DayTitle(date: widget.selectedDate),
+          DayTitle(date: widget.selectedDate),
           const SizedBox(height: 8),
           RatingRow(selected: _rating, onSelected: _selectRating),
           const SizedBox(height: 10),
