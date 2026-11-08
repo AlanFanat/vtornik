@@ -4,6 +4,7 @@ import '../../core/colors.dart';
 import '../../core/date_format.dart';
 import '../../data/day_entry.dart';
 import '../../widgets/section_title.dart';
+import 'rating_badge.dart';
 
 /// Заполненный день в режиме чтения: оформлен как редактор, но не редактируется.
 /// Нажатие на карточку открывает форму правки.
@@ -45,7 +46,7 @@ class DaySummary extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  _RatingBadge(rating: rating),
+                  RatingBadge(rating: rating),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -110,37 +111,6 @@ class DaySummary extends StatelessWidget {
               ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Крупная плитка оценки: цвет оценки или серая «—».
-class _RatingBadge extends StatelessWidget {
-  const _RatingBadge({required this.rating});
-
-  final int? rating;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final rating = this.rating;
-
-    return Container(
-      width: 56,
-      height: 56,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: rating != null ? ratingColor(rating) : colors.surface,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        rating?.toString() ?? '—',
-        style: TextStyle(
-          fontSize: 26,
-          fontWeight: FontWeight.w800,
-          color: rating != null ? colors.onRatingColor : colors.disabledText,
         ),
       ),
     );

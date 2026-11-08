@@ -267,11 +267,15 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Шапка: в первой строке дата и кнопки, под ней день недели
+          // и индикатор сохранения.
           Row(
             children: [
               Expanded(
                 child: Text(
                   formatDate(widget.selectedDate),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -279,6 +283,48 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
                   ),
                 ),
               ),
+              if (showCancel)
+                TextButton(
+                  onPressed: widget.onCancel,
+                  style: TextButton.styleFrom(
+                    foregroundColor: errorColor,
+                    visualDensity: VisualDensity.compact,
+                    minimumSize: const Size(0, 32),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Отмена', style: TextStyle(fontSize: 14)),
+                ),
+              if (showCancel && showDone) const SizedBox(width: 4),
+              if (showDone)
+                FilledButton(
+                  onPressed: _done,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: accentColor,
+                    foregroundColor: Colors.white,
+                    visualDensity: VisualDensity.compact,
+                    minimumSize: const Size(0, 32),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Готово',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+            ],
+          ),
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  weekdayName(widget.selectedDate),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ),
+              const SizedBox(width: 8),
               SaveIndicator(status: _status),
             ],
           ),
@@ -311,22 +357,6 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
               ),
             ),
           ),
-          if (showDone || showCancel) ...[
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (showCancel)
-                  TextButton(
-                    onPressed: widget.onCancel,
-                    child: const Text('Отмена'),
-                  ),
-                if (showCancel && showDone) const SizedBox(width: 8),
-                if (showDone)
-                  FilledButton(onPressed: _done, child: const Text('Готово')),
-              ],
-            ),
-          ],
         ],
       ),
     );
