@@ -7,7 +7,7 @@ import '../../data/app_storage.dart';
 import '../../data/diary_controller.dart';
 import '../calendar/month_calendar.dart';
 import '../day_editor/day_editor.dart';
-import '../stats/day_card.dart';
+import '../day_editor/day_summary.dart';
 import '../settings/settings_page.dart';
 import '../stats/stats_page.dart';
 
@@ -163,10 +163,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       );
     }
 
-    return DayCard(
+    return DaySummary(
       date: date,
       entry: entry,
-      onTap: () => setState(() {
+      onEdit: () => setState(() {
         _formOpen = true;
         _canCollapse = true;
       }),
