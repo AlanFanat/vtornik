@@ -6,6 +6,7 @@ import '../../data/day_entry.dart';
 import '../../widgets/section_title.dart';
 
 /// Заполненный день в режиме чтения: оформлен как редактор, но не редактируется.
+/// Нажатие на карточку открывает форму правки.
 class DaySummary extends StatelessWidget {
   const DaySummary({
     super.key,
@@ -17,7 +18,7 @@ class DaySummary extends StatelessWidget {
   final DateTime date;
   final DayEntry entry;
 
-  /// Нажатие на ✏️. Если null, кнопка не показывается.
+  /// Нажатие на карточку. Если null, карточка не нажимается.
   final VoidCallback? onEdit;
 
   @override
@@ -27,79 +28,89 @@ class DaySummary extends StatelessWidget {
     final note = entry.note.trim();
     final tags = entry.tags.toList()..sort();
 
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: colors.card,
+    // Material + InkWell вместо Container: иначе заливка закрывает рябь нажатия.
+    return Material(
+      color: colors.card,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.cardBorder),
+        side: BorderSide(color: colors.cardBorder),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onEdit,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _RatingBadge(rating: rating),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      formatDate(date),
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: colors.text,
-                      ),
+              Row(
+                children: [
+                  _RatingBadge(rating: rating),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          formatDate(date),
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: colors.text,
+                          ),
+                        ),
+                        Text(
+                          weekdayName(date),
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      weekdayName(date),
-                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                  // Только подсказка, что карточку можно нажать.
+                  if (onEdit != null)
+                    const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Icon(Icons.edit_outlined, color: Colors.grey),
                     ),
-                  ],
-                ),
+                ],
               ),
-              if (onEdit != null)
-                IconButton(
-                  tooltip: 'Изменить',
-                  icon: Icon(Icons.edit_outlined, color: colors.text),
-                  onPressed: onEdit,
+              if (tags.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const SectionTitle('Теги дня'),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [for (final tag in tags) _TagLabel(tag)],
                 ),
+              ],
+              if (note.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const SectionTitle('Заметка'),
+                const SizedBox(height: 4),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colors.inputFill,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    note,
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.35,
+                      color: colors.text,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
-          if (tags.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            const SectionTitle('Теги дня'),
-            const SizedBox(height: 4),
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: [for (final tag in tags) _TagLabel(tag)],
-            ),
-          ],
-          if (note.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            const SectionTitle('Заметка'),
-            const SizedBox(height: 4),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: colors.inputFill,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                note,
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.35,
-                  color: colors.text,
-                ),
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -151,10 +162,7 @@ class _TagLabel extends StatelessWidget {
         color: colors.surface,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Text(
-        tag,
-        style: TextStyle(fontSize: 12, color: colors.text),
-      ),
+      child: Text(tag, style: TextStyle(fontSize: 12, color: colors.text)),
     );
   }
 }

@@ -12,6 +12,10 @@ import 'save_indicator.dart';
 import 'tag_dialogs.dart';
 import 'tags_section.dart';
 
+/// Форма дня. Работает в двух режимах:
+///  * обычный (по умолчанию): каждое изменение сразу сохраняется;
+///  * правка готовой записи ([onDraftChanged] задан): изменения копятся
+///    в черновике и применяются, только когда родитель нажмёт «Готово».
 class DayEditor extends StatefulWidget {
   const DayEditor({
     super.key,
@@ -23,6 +27,8 @@ class DayEditor extends StatefulWidget {
     required this.onDeleteTag,
     required this.onDone,
     required this.onChanged,
+    this.onCancel,
+    this.onDraftChanged,
   });
 
   final DateTime selectedDate;
@@ -32,9 +38,16 @@ class DayEditor extends StatefulWidget {
   final void Function(String from, String to) onRenameTag;
   final ValueChanged<String> onDeleteTag;
 
+  /// «Готово»: свернуть форму в карточку. null — кнопки нет.
   final VoidCallback? onDone;
 
-  /// Вызывается при каждом изменении дня. Возвращает true,
+  /// «Отмена» в режиме правки: выбросить черновик. null — кнопки нет.
+  final VoidCallback? onCancel;
+
+  /// Если задан, форма работает как черновик и ничего не сохраняет сама.
+  final ValueChanged<DayEntry>? onDraftChanged;
+
+  /// Вызывается при каждом изменении дня (в обычном режиме). Возвращает true,
   /// если запись удалось сохранить на устройство.
   final Future<bool> Function(DateTime date, DayEntry entry) onChanged;
 
@@ -52,6 +65,8 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
   Timer? _noteTimer;
   SaveStatus _status = SaveStatus.idle;
 
+  bool get _draftMode => widget.onDraftChanged != null;
+
   @override
   void initState() {
     super.initState();
@@ -63,6 +78,7 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
 
     // Заметку не успели сохранить (сменили день за доли секунды) — сохраняем сейчас.
+    // В режиме правки таймера нет, так что черновик сюда не попадает.
     if (_noteTimer?.isActive ?? false) {
       _noteTimer!.cancel();
       unawaited(widget.onChanged(widget.selectedDate, _currentEntry));
@@ -93,7 +109,7 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
       ..showSnackBar(SnackBar(content: Text(text)));
   }
 
-  // ----- Автосохранение -----
+  // ----- Сохранение -----
 
   Future<void> _saveNow() async {
     _noteTimer?.cancel();
@@ -110,12 +126,39 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
     _noteTimer = Timer(noteSaveDelay, _saveNow);
   }
 
+  /// Что-то изменилось. В режиме правки отдаём черновик наверх,
+  /// в обычном режиме сохраняем сразу.
+  void _changed() {
+    if (_draftMode) {
+      setState(() => _status = SaveStatus.draft);
+      widget.onDraftChanged!(_currentEntry);
+    } else {
+      unawaited(_saveNow());
+    }
+  }
+
+  void _noteChanged() {
+    if (_draftMode) {
+      _changed();
+    } else {
+      _scheduleSave();
+    }
+  }
+
+  /// «Готово»: в обычном режиме сначала дописываем сохранение,
+  /// в режиме правки применять черновик будет родитель.
+  Future<void> _done() async {
+    FocusScope.of(context).unfocus();
+    if (!_draftMode) await _saveNow(); // не ждём таймер заметки
+    widget.onDone?.call();
+  }
+
   // ----- Оценка -----
 
   /// Повторное нажатие на выбранную оценку снимает её.
   void _selectRating(int rating) {
     setState(() => _rating = _rating == rating ? null : rating);
-    unawaited(_saveNow());
+    _changed();
   }
 
   // ----- Теги -----
@@ -128,7 +171,7 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
         _tags.remove(tag);
       }
     });
-    unawaited(_saveNow());
+    _changed();
   }
 
   Future<void> _addTag() async {
@@ -146,7 +189,7 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
     if (existing != null) {
       // Дубликат — выбираем существующий тег для текущего дня.
       setState(() => _tags.add(existing));
-      unawaited(_saveNow());
+      _changed();
     } else {
       // Новый тег — только добавляем в общий список, без автовыбора.
       widget.onAddTag(name);
@@ -184,12 +227,13 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
       return;
     }
 
-    // Тег меняется и в общем списке, и во всех прошлых днях.
+    // Тег меняется и в общем списке, и во всех прошлых днях
+    // (в том числе в режиме правки: переименование не часть черновика).
     widget.onRenameTag(tag, name);
     setState(() {
       if (_tags.remove(tag)) _tags.add(name);
     });
-    unawaited(_saveNow());
+    _changed();
   }
 
   Future<void> _deleteTag(String tag) async {
@@ -198,7 +242,7 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
 
     widget.onDeleteTag(tag);
     setState(() => _tags.remove(tag));
-    unawaited(_saveNow());
+    _changed();
   }
 
   // ----- Экран -----
@@ -206,6 +250,12 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+
+    // В режиме правки «Готово» есть всегда. В обычном режиме только когда
+    // в дне уже что-то записано, иначе сворачивать нечего.
+    final showDone =
+        widget.onDone != null && (_draftMode || !_currentEntry.isEmpty);
+    final showCancel = widget.onCancel != null;
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -247,7 +297,7 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
           const SizedBox(height: 4),
           TextField(
             controller: _noteController,
-            onChanged: (_) => _scheduleSave(),
+            onChanged: (_) => _noteChanged(),
             maxLines: 4,
             style: TextStyle(color: colors.text),
             decoration: InputDecoration(
@@ -261,17 +311,20 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
               ),
             ),
           ),
-          if (widget.onDone != null) ...[
+          if (showDone || showCancel) ...[
             const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton(
-                onPressed: () async {
-                  await _saveNow(); // не ждём таймер заметки
-                  widget.onDone!();
-                },
-                child: const Text('Готово'),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (showCancel)
+                  TextButton(
+                    onPressed: widget.onCancel,
+                    child: const Text('Отмена'),
+                  ),
+                if (showCancel && showDone) const SizedBox(width: 8),
+                if (showDone)
+                  FilledButton(onPressed: _done, child: const Text('Готово')),
+              ],
             ),
           ],
         ],
