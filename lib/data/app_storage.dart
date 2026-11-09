@@ -38,7 +38,7 @@ class AppStorage {
 
   bool get isCalendarCollapsed => _prefs.getBool(_isCalendarCollapsed) ?? false;
 
-  Future<bool> setCollaps(bool value) =>
+  Future<bool> setCalendarCollapsed(bool value) =>
       _prefs.setBool(_isCalendarCollapsed, value);
 
   // ----- Теги -----

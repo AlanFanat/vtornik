@@ -3,18 +3,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../widgets/section_title.dart';
 import '../../core/colors.dart';
 import '../../data/app_storage.dart';
 import '../../data/diary_controller.dart';
+import '../calendar/calendar_header.dart';
 import '../calendar/month_calendar.dart';
 import '../day_editor/day_editor.dart';
 import '../settings/settings_page.dart';
 import '../stats/stats_page.dart';
 
 /// Корневой экран: нижняя навигация и три вкладки.
-/// Здесь живёт только состояние интерфейса (вкладка, выбранный день, месяц,
-/// режим и неделя календаря); данные и их сохранение — в [DiaryController].
+/// Здесь живёт только состояние интерфейса (вкладка, выбранный день, режим
+/// календаря); данные и их сохранение — в [DiaryController].
 class HomePage extends StatefulWidget {
   const HomePage({
     super.key,
@@ -37,14 +37,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int _navIndex = 0;
 
   DateTime _today = DateUtils.dateOnly(DateTime.now());
+
+  /// Выбранный день. Месяц и неделя календаря всегда определяются им.
   late DateTime _selectedDate = _today;
-  late DateTime _visibleMonth = DateTime(_today.year, _today.month);
 
   /// true — календарь свёрнут до одной недели, false — показан весь месяц.
   late bool _isCalendarCollapsed = widget.storage.isCalendarCollapsed;
 
-  /// Понедельник отображаемой недели в свёрнутом режиме.
-  late DateTime _weekStart = _mondayOf(_today);
+  // Производные от выбранного дня: отдельного состояния не требуют.
+  DateTime get _visibleMonth => _monthOf(_selectedDate);
+  DateTime get _weekStart => _mondayOf(_selectedDate);
 
   @override
   void initState() {
@@ -71,189 +73,71 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     setState(() {
       _today = today;
       _selectedDate = today;
-      _visibleMonth = DateTime(today.year, today.month);
-      _weekStart = _mondayOf(today);
     });
   }
 
-  /// Переход из статистики: открываем день в календаре.
+  // ----- Выбор дня и режим календаря -----
+
+  void _selectDay(DateTime date) => setState(() => _selectedDate = date);
+
+  void _goToToday() => _selectDay(_today);
+
+  /// Переход из статистики: открываем день на вкладке «Календарь».
   void openDay(DateTime date) {
     setState(() {
       _selectedDate = date;
-      _visibleMonth = DateTime(date.year, date.month);
-      _weekStart = _mondayOf(date);
       _navIndex = 0;
     });
   }
 
-  // ----- Логика календаря -----
-
-  /// Возвращает понедельник недели, содержащей [date].
-  DateTime _mondayOf(DateTime date) {
-    final d = DateUtils.dateOnly(date);
-    return d.subtract(Duration(days: d.weekday - 1));
-  }
-
-  /// «Четверговый» месяц недели (правило ISO: к какому месяцу относится неделя).
-  DateTime _thursdayMonthOf(DateTime weekStart) {
-    final thursday = weekStart.add(const Duration(days: 3));
-    return DateTime(thursday.year, thursday.month);
-  }
-
-  /// Выбирает начало недели при сворачивании:
-  /// 0. Запомненная неделя, если она относится к показанному месяцу
-  ///    (так при «свернул → полистал → развернул → свернул» возвращается
-  ///    та же неделя).
-  /// 1. Неделя выбранного дня, если он в показанном месяце.
-  /// 2. Неделя сегодняшнего дня, если показан текущий месяц.
-  /// 3. Неделя первого числа месяца.
-  DateTime _weekStartForCollapse() {
-    final m = _visibleMonth;
-    final sel = DateUtils.dateOnly(_selectedDate);
-
-    if (_thursdayMonthOf(_weekStart) == DateTime(m.year, m.month)) {
-      return _weekStart;
-    }
-
-    if (sel.year == m.year && sel.month == m.month) {
-      return _mondayOf(sel);
-    }
-    if (m.year == _today.year && m.month == _today.month) {
-      return _mondayOf(_today);
-    }
-    return _mondayOf(DateTime(m.year, m.month, 1));
-  }
-
   void _toggleCalendar() {
-    setState(() {
-      if (!_isCalendarCollapsed) {
-        // Развёрнутый → свёрнутый.
-        _weekStart = _weekStartForCollapse();
-        _visibleMonth = _thursdayMonthOf(_weekStart);
-        _isCalendarCollapsed = true;
-      } else {
-        // Свёрнутый → развёрнутый: месяц четверга текущей недели.
-        _visibleMonth = _thursdayMonthOf(_weekStart);
-        _isCalendarCollapsed = false;
-      }
-    });
-    // Сохраняем новое состояние асинхронно, не блокируя UI.
-    unawaited(widget.storage.setCollaps(_isCalendarCollapsed));
+    setState(() => _isCalendarCollapsed = !_isCalendarCollapsed);
+    // Сохраняем асинхронно, не блокируя интерфейс.
+    unawaited(widget.storage.setCalendarCollapsed(_isCalendarCollapsed));
   }
 
-  void _goToToday() {
-    final today = DateUtils.dateOnly(DateTime.now());
+  // ----- Листание календаря -----
+  //
+  // Стрелки двигают выбранный день, а месяц и неделя следуют за ним.
+  // Дальше сегодняшнего дня не листаем.
+
+  void _previous() => _step(-1);
+  void _next() => _step(1);
+
+  /// Свёрнутый режим сдвигает на неделю, развёрнутый на месяц.
+  void _step(int direction) {
     setState(() {
-      _today = today;
-      _selectedDate = today;
-      _visibleMonth = DateTime(today.year, today.month);
-      _weekStart = _mondayOf(today);
+      _selectedDate = _isCalendarCollapsed
+          ? _shiftByDays(7 * direction)
+          : _shiftByMonths(direction);
     });
   }
 
-  void _changeWeek(DateTime newWeekStart) {
-    setState(() {
-      _weekStart = newWeekStart;
-      _visibleMonth = _thursdayMonthOf(newWeekStart);
-    });
+  DateTime _clampToToday(DateTime date) => date.isAfter(_today) ? _today : date;
+
+  DateTime _shiftByDays(int days) {
+    return _clampToToday(DateUtils.addDaysToDate(_selectedDate, days));
   }
 
-  void _previous() {
-    if (_isCalendarCollapsed) {
-      _changeWeek(_weekStart.subtract(const Duration(days: 7)));
-    } else {
-      setState(() {
-        _visibleMonth = DateUtils.addMonthsToMonthDate(_visibleMonth, -1);
-      });
-    }
+  /// То же число в соседнем месяце; если там меньше дней, берём последнее.
+  DateTime _shiftByMonths(int months) {
+    final month = DateUtils.addMonthsToMonthDate(_visibleMonth, months);
+    final lastDay = DateUtils.getDaysInMonth(month.year, month.month);
+    final day = _selectedDate.day.clamp(1, lastDay);
+    return _clampToToday(DateTime(month.year, month.month, day));
   }
 
-  void _next() {
-    if (_isCalendarCollapsed) {
-      _changeWeek(_weekStart.add(const Duration(days: 7)));
-    } else {
-      setState(() {
-        _visibleMonth = DateUtils.addMonthsToMonthDate(_visibleMonth, 1);
-      });
-    }
-  }
+  /// Кнопка «Сегодня» скрыта, когда уже показана текущая неделя или месяц.
+  bool get _showTodayButton => _isCalendarCollapsed
+      ? _weekStart != _mondayOf(_today)
+      : _visibleMonth != _monthOf(_today);
 
-  /// Показывать ли кнопку «Сегодня».
-  bool get _showTodayBtn {
-    if (_isCalendarCollapsed) {
-      // Скрыта только когда на текущей неделе.
-      return _weekStart != _mondayOf(_today);
-    }
-    // Скрыта только когда показан текущий месяц.
-    return _visibleMonth.year != _today.year ||
-        _visibleMonth.month != _today.month;
-  }
-
-  /// Можно ли листать вперёд (по месяцам или неделям).
-  bool get _canGoNext {
-    if (_isCalendarCollapsed) {
-      return !_weekStart.add(const Duration(days: 7)).isAfter(_today);
-    }
-    return _visibleMonth.isBefore(DateTime(_today.year, _today.month));
-  }
+  /// Можно ли листать вперёд (по неделям или месяцам).
+  bool get _canGoNext => _isCalendarCollapsed
+      ? !DateUtils.addDaysToDate(_weekStart, 7).isAfter(_today)
+      : _visibleMonth.isBefore(_monthOf(_today));
 
   // ----- Экран -----
-
-  Widget _buildCalendarHeader() {
-    const buttonConstraints = BoxConstraints.tightFor(width: 40, height: 40);
-
-    // Высоту строки задаёт только заголовок; кнопки лежат поверх справа
-    // и не влияют на его положение.
-    return SizedBox(
-      width: double.infinity,
-      child: Stack(
-        alignment: Alignment.centerLeft,
-        children: [
-          PageTitle('Календарь'),
-          Positioned.fill(
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Кнопка «Сегодня» — место занято всегда, но может быть невидима.
-                  AnimatedOpacity(
-                    opacity: _showTodayBtn ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 150),
-                    child: IgnorePointer(
-                      ignoring: !_showTodayBtn,
-                      child: IconButton(
-                        constraints: buttonConstraints,
-                        padding: EdgeInsets.zero,
-                        tooltip: 'Сегодня',
-                        icon: const Icon(Icons.today),
-                        onPressed: _goToToday,
-                      ),
-                    ),
-                  ),
-
-                  // Кнопка «Свернуть / Развернуть».
-                  AnimatedRotation(
-                    turns: _isCalendarCollapsed ? 0.5 : 0.0, // 180° при свёрнутом
-                    duration: const Duration(milliseconds: 250),
-                    child: IconButton(
-                      constraints: buttonConstraints,
-                      padding: EdgeInsets.zero,
-                      tooltip: _isCalendarCollapsed
-                          ? 'Показать месяц'
-                          : 'Свернуть до недели',
-                      icon: const Icon(Icons.expand_less),
-                      onPressed: _toggleCalendar,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildCalendarTab() {
     return SingleChildScrollView(
@@ -262,7 +146,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCalendarHeader(),
+          CalendarHeader(
+            isCollapsed: _isCalendarCollapsed,
+            showToday: _showTodayButton,
+            onToday: _goToToday,
+            onToggle: _toggleCalendar,
+          ),
           const SizedBox(height: 6),
           MonthCalendar(
             month: _visibleMonth,
@@ -273,12 +162,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             canGoNext: _canGoNext,
             onPrevious: _previous,
             onNext: _next,
-            onDateSelected: (date) {
-              setState(() {
-                _selectedDate = date;
-                _weekStart = _mondayOf(date);
-              });
-            },
+            onDateSelected: _selectDay,
           ),
           const SizedBox(height: 6),
           DayEditor(
@@ -301,16 +185,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final iconBrightness = widget.isDarkTheme
+        ? Brightness.light
+        : Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      // Иконки статус-бара должны быть контрастны фону.
+      // Иконки статус-бара и системной панели контрастны фону.
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness:
-            widget.isDarkTheme ? Brightness.light : Brightness.dark,
+        statusBarIconBrightness: iconBrightness,
         systemNavigationBarColor: colors.card,
-        systemNavigationBarIconBrightness:
-            widget.isDarkTheme ? Brightness.light : Brightness.dark,
+        systemNavigationBarIconBrightness: iconBrightness,
         systemNavigationBarContrastEnforced: false, // убирает серую подложку
       ),
       child: Scaffold(
@@ -361,4 +246,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       ),
     );
   }
+}
+
+/// Первое число месяца, в котором лежит [date].
+DateTime _monthOf(DateTime date) => DateTime(date.year, date.month);
+
+/// Понедельник недели, в которой лежит [date].
+DateTime _mondayOf(DateTime date) {
+  final d = DateUtils.dateOnly(date);
+  return DateUtils.addDaysToDate(d, -(d.weekday - 1));
 }
