@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -39,7 +41,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   late DateTime _visibleMonth = DateTime(_today.year, _today.month);
 
   /// true — календарь свёрнут до одной недели, false — показан весь месяц.
-  bool _isCalendarCollapsed = false;
+  late bool _isCalendarCollapsed = widget.storage.isCalendarCollapsed;
 
   /// Понедельник отображаемой недели в свёрнутом режиме.
   late DateTime _weekStart = _mondayOf(_today);
@@ -135,6 +137,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         _isCalendarCollapsed = false;
       }
     });
+    // Сохраняем новое состояние асинхронно, не блокируя UI.
+    unawaited(widget.storage.setCollaps(_isCalendarCollapsed));
   }
 
   void _goToToday() {

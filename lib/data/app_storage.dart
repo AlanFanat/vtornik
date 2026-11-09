@@ -22,6 +22,7 @@ class AppStorage {
   static const _tagsKey = 'tags';
   static const _entriesKey = 'entries';
   static const _corruptedEntriesKey = 'entries_corrupted';
+  static const _isCalendarCollapsed = 'is_calendar_collapsed';
 
   static Future<AppStorage> open() async {
     return AppStorage._(await SharedPreferences.getInstance());
@@ -32,6 +33,13 @@ class AppStorage {
   bool get isDarkTheme => _prefs.getBool(_darkThemeKey) ?? false;
 
   Future<bool> setDarkTheme(bool value) => _prefs.setBool(_darkThemeKey, value);
+
+  // ----- Календарь -----
+
+  bool get isCalendarCollapsed => _prefs.getBool(_isCalendarCollapsed) ?? false;
+
+  Future<bool> setCollaps(bool value) =>
+      _prefs.setBool(_isCalendarCollapsed, value);
 
   // ----- Теги -----
 
