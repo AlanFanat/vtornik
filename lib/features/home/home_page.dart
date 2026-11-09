@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/colors.dart';
+import '../../core/date_math.dart';
 import '../../data/app_storage.dart';
 import '../../data/diary_controller.dart';
 import '../calendar/calendar_header.dart';
@@ -45,8 +46,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   late bool _isCalendarCollapsed = widget.storage.isCalendarCollapsed;
 
   // Производные от выбранного дня: отдельного состояния не требуют.
-  DateTime get _visibleMonth => _monthOf(_selectedDate);
-  DateTime get _weekStart => _mondayOf(_selectedDate);
+  DateTime get _visibleMonth => monthOf(_selectedDate);
+  DateTime get _weekStart => mondayOf(_selectedDate);
 
   @override
   void initState() {
@@ -129,13 +130,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   /// Кнопка «Сегодня» скрыта, когда уже показана текущая неделя или месяц.
   bool get _showTodayButton => _isCalendarCollapsed
-      ? _weekStart != _mondayOf(_today)
-      : _visibleMonth != _monthOf(_today);
+      ? _weekStart != mondayOf(_today)
+      : _visibleMonth != monthOf(_today);
 
   /// Можно ли листать вперёд (по неделям или месяцам).
   bool get _canGoNext => _isCalendarCollapsed
       ? !DateUtils.addDaysToDate(_weekStart, 7).isAfter(_today)
-      : _visibleMonth.isBefore(_monthOf(_today));
+      : _visibleMonth.isBefore(monthOf(_today));
 
   // ----- Экран -----
 
@@ -246,13 +247,4 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       ),
     );
   }
-}
-
-/// Первое число месяца, в котором лежит [date].
-DateTime _monthOf(DateTime date) => DateTime(date.year, date.month);
-
-/// Понедельник недели, в которой лежит [date].
-DateTime _mondayOf(DateTime date) {
-  final d = DateUtils.dateOnly(date);
-  return DateUtils.addDaysToDate(d, -(d.weekday - 1));
 }
