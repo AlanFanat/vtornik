@@ -4,15 +4,11 @@ import '../../core/colors.dart';
 import '../../data/day_entry.dart';
 import '../../widgets/section_title.dart';
 import 'day_card.dart';
+import 'period_navigator.dart';
 import 'stats_grid.dart';
+import 'stats_period.dart';
 import 'stats_tags.dart';
 import 'stats_weekdays.dart';
-
-enum StatsPeriod {
-  week,
-  month,
-  allTime,
-}
 
 class StatsPage extends StatefulWidget {
   const StatsPage({
@@ -29,36 +25,67 @@ class StatsPage extends StatefulWidget {
 }
 
 class _StatsPageState extends State<StatsPage> {
-  StatsPeriod _selectedPeriod = StatsPeriod.allTime;
+  StatsPeriod _period = StatsPeriod.allTime;
 
-  Map<DateTime, DayEntry> _filterEntries(DateTime today) {
-    switch (_selectedPeriod) {
-      case StatsPeriod.week:
-        final start = today.subtract(const Duration(days: 6));
-        return Map.fromEntries(
-          widget.entries.entries.where((e) {
-            final d = DateUtils.dateOnly(e.key);
-            return !d.isBefore(start) && !d.isAfter(today);
-          }),
-        );
-      case StatsPeriod.month:
-        final start = today.subtract(const Duration(days: 29));
-        return Map.fromEntries(
-          widget.entries.entries.where((e) {
-            final d = DateUtils.dateOnly(e.key);
-            return !d.isBefore(start) && !d.isAfter(today);
-          }),
-        );
-      case StatsPeriod.allTime:
-        return widget.entries;
-    }
+  /// На сколько периодов (недель или месяцев) назад от текущего. 0 — текущий.
+  /// Хранится именно число, а не дата: «текущий» сам пересчитывается от
+  /// сегодняшней даты, даже если приложение пролежало всю ночь.
+  int _pagesBack = 0;
+
+  /// Куда листали в последний раз: от этого зависит сторона анимации.
+  int _direction = 1;
+
+  void _changePeriod(StatsPeriod period) {
+    setState(() {
+      _period = period;
+      _pagesBack = 0;
+      _direction = 1;
+    });
+  }
+
+  void _goBack() => setState(() {
+    _pagesBack++;
+    _direction = -1;
+  });
+
+  void _goForward() => setState(() {
+    _pagesBack--;
+    _direction = 1;
+  });
+
+  void _goToCurrent() => setState(() {
+    _pagesBack = 0;
+    _direction = 1;
+  });
+
+  /// Записи, попавшие в период. Без границ — все.
+  Map<DateTime, DayEntry> _filterEntries(DateTimeRange? range) {
+    if (range == null) return widget.entries;
+
+    return Map.fromEntries(
+      widget.entries.entries.where((e) {
+        final day = DateUtils.dateOnly(e.key);
+        return !day.isBefore(range.start) && !day.isAfter(range.end);
+      }),
+    );
+  }
+
+  /// Самый ранний день с записью: дальше назад листать незачем.
+  DateTime? _earliestDate() {
+    if (widget.entries.isEmpty) return null;
+    return widget.entries.keys
+        .map(DateUtils.dateOnly)
+        .reduce((a, b) => a.isBefore(b) ? a : b);
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final today = DateUtils.dateOnly(DateTime.now());
-    final filtered = _filterEntries(today);
+
+    final range = statsRange(_period, today, _pagesBack);
+    final filtered = _filterEntries(range);
+    final earliest = _earliestDate();
 
     // Новые дни сверху.
     final sortedEntries = filtered.entries.toList()
@@ -75,14 +102,28 @@ class _StatsPageState extends State<StatsPage> {
             children: [
               const PageTitle('Статистика'),
               const SizedBox(height: 10),
-              _PeriodSelector(
-                selected: _selectedPeriod,
-                onChanged: (period) => setState(() => _selectedPeriod = period),
-              ),
+              _PeriodSelector(selected: _period, onChanged: _changePeriod),
+              if (range != null) ...[
+                const SizedBox(height: 8),
+                PeriodNavigator(
+                  label: periodLabel(_period, range),
+                  caption: periodCaption(_period, _pagesBack),
+                  direction: _direction,
+                  canGoPrevious:
+                      earliest != null && range.start.isAfter(earliest),
+                  canGoNext: _pagesBack > 0,
+                  onPrevious: _goBack,
+                  onNext: _goForward,
+                  onReset: _goToCurrent,
+                ),
+              ],
               const SizedBox(height: 12),
               if (filtered.isEmpty)
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 36,
+                    horizontal: 16,
+                  ),
                   alignment: Alignment.center,
                   child: Text(
                     'За выбранный период записей нет',
@@ -114,10 +155,7 @@ class _StatsPageState extends State<StatsPage> {
 }
 
 class _PeriodSelector extends StatelessWidget {
-  const _PeriodSelector({
-    required this.selected,
-    required this.onChanged,
-  });
+  const _PeriodSelector({required this.selected, required this.onChanged});
 
   final StatsPeriod selected;
   final ValueChanged<StatsPeriod> onChanged;
@@ -136,7 +174,7 @@ class _PeriodSelector extends StatelessWidget {
       child: Row(
         children: [
           _buildItem(context, StatsPeriod.week, 'Неделя'),
-          _buildItem(context, StatsPeriod.month, '30 дней'),
+          _buildItem(context, StatsPeriod.month, 'Месяц'),
           _buildItem(context, StatsPeriod.allTime, 'Всё время'),
         ],
       ),

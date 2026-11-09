@@ -54,3 +54,31 @@ String formatDate(DateTime date) {
 }
 
 String weekdayName(DateTime date) => _weekdaysFull[date.weekday - 1];
+
+/// Возвращает, например: «Ноябрь 2026»
+String formatMonthYear(DateTime date) {
+  final monthName = months[date.month - 1];
+  return '$monthName ${date.year}';
+}
+
+/// Возвращает:
+/// - «3 – 9 ноября» (один месяц)
+/// - «28 октября – 3 ноября» (разные месяцы)
+/// - «29 декабря 2025 – 4 января 2026» (разные годы)
+String formatDayRange(DateTime start, DateTime end) {
+  final startMonth = _monthsGenitive[start.month - 1];
+  final endMonth = _monthsGenitive[end.month - 1];
+
+  // Случай 1: Переход через границу года (конец декабря -> начало января)
+  if (start.year != end.year) {
+    return '${start.day} $startMonth ${start.year} – ${end.day} $endMonth ${end.year}';
+  }
+
+  // Случай 2: Разные месяцы внутри одного года
+  if (start.month != end.month) {
+    return '${start.day} $startMonth – ${end.day} $endMonth';
+  }
+
+  // Случай 3: Дни внутри одного месяца (самый частый)
+  return '${start.day} – ${end.day} $endMonth';
+}
