@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/date_format.dart';
 import '../../core/date_math.dart';
+import '../../data/day_entry.dart';
 
 /// Период статистики. Неделя и месяц календарные, их можно листать.
 enum StatsPeriod { week, month, allTime }
@@ -49,4 +50,31 @@ String periodCaption(StatsPeriod period, int pagesBack) {
   if (pagesBack == 0) return isWeek ? 'Эта неделя' : 'Этот месяц';
   if (pagesBack == 1) return isWeek ? 'Прошлая неделя' : 'Прошлый месяц';
   return isWeek ? '$pagesBack нед. назад' : '$pagesBack мес. назад';
+}
+
+/// Первый и последний записанный день. null, если записей нет.
+/// Дальше первого дня назад листать незачем.
+DateTimeRange? entriesDateBounds(Map<DateTime, DayEntry> entries) {
+  if (entries.isEmpty) return null;
+
+  final days = entries.keys.map(DateUtils.dateOnly);
+  return DateTimeRange(
+    start: days.reduce((a, b) => a.isBefore(b) ? a : b),
+    end: days.reduce((a, b) => a.isAfter(b) ? a : b),
+  );
+}
+
+/// Записи, попавшие в период. Без границ — все.
+Map<DateTime, DayEntry> filterEntriesByRange(
+  Map<DateTime, DayEntry> entries,
+  DateTimeRange? range,
+) {
+  if (range == null) return entries;
+
+  return Map.fromEntries(
+    entries.entries.where((e) {
+      final day = DateUtils.dateOnly(e.key);
+      return !day.isBefore(range.start) && !day.isAfter(range.end);
+    }),
+  );
 }

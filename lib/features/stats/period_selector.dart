@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/colors.dart';
-import 'stats_period.dart';
+import 'period_math.dart';
 
 /// Переключатель масштаба статистики: «Неделя», «Месяц», «Всё время».
 class PeriodSelector extends StatelessWidget {

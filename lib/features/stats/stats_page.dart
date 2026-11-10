@@ -7,7 +7,7 @@ import 'day_card.dart';
 import 'period_navigator.dart';
 import 'period_selector.dart';
 import 'stats_grid.dart';
-import 'stats_period.dart';
+import 'period_math.dart';
 import 'stats_tags.dart';
 import 'stats_weekdays.dart';
 
@@ -59,38 +59,14 @@ class _StatsPageState extends State<StatsPage> {
     _direction = 1;
   });
 
-  /// Записи, попавшие в период. Без границ — все.
-  Map<DateTime, DayEntry> _filterEntries(DateTimeRange? range) {
-    if (range == null) return widget.entries;
-
-    return Map.fromEntries(
-      widget.entries.entries.where((e) {
-        final day = DateUtils.dateOnly(e.key);
-        return !day.isBefore(range.start) && !day.isAfter(range.end);
-      }),
-    );
-  }
-
-  /// Первый и последний записанный день. null, если записей нет.
-  /// Дальше первого дня назад листать незачем.
-  DateTimeRange? _dateBounds() {
-    if (widget.entries.isEmpty) return null;
-
-    final days = widget.entries.keys.map(DateUtils.dateOnly);
-    return DateTimeRange(
-      start: days.reduce((a, b) => a.isBefore(b) ? a : b),
-      end: days.reduce((a, b) => a.isAfter(b) ? a : b),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final today = DateUtils.dateOnly(DateTime.now());
 
     final range = statsRange(_period, today, _pagesBack);
-    final filtered = _filterEntries(range);
-    final bounds = _dateBounds();
+    final filtered = filterEntriesByRange(widget.entries, range);
+    final bounds = entriesDateBounds(widget.entries);
 
     // Новые дни сверху.
     final sortedEntries = filtered.entries.toList()
