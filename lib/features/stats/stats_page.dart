@@ -4,10 +4,10 @@ import '../../core/colors.dart';
 import '../../data/day_entry.dart';
 import '../../widgets/section_title.dart';
 import 'day_card.dart';
+import 'period_math.dart';
 import 'period_navigator.dart';
 import 'period_selector.dart';
 import 'stats_grid.dart';
-import 'period_math.dart';
 import 'stats_tags.dart';
 import 'stats_weekdays.dart';
 
@@ -61,7 +61,6 @@ class _StatsPageState extends State<StatsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     final today = DateUtils.dateOnly(DateTime.now());
 
     final range = statsRange(_period, today, _pagesBack);
@@ -78,53 +77,17 @@ class _StatsPageState extends State<StatsPage> {
       itemCount: sortedEntries.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const PageTitle('Статистика'),
-              const SizedBox(height: 6),
-              PeriodSelector(selected: _period, onChanged: _changePeriod),
-              const SizedBox(height: 8),
-              if (range != null)
-                PeriodNavigator(
-                  label: periodLabel(_period, range),
-                  caption: periodCaption(_period, _pagesBack),
-                  direction: _direction,
-                  canGoPrevious:
-                      bounds != null && range.start.isAfter(bounds.start),
-                  canGoNext: _pagesBack > 0,
-                  onPrevious: _goBack,
-                  onNext: _goForward,
-                  onReset: _goToCurrent,
-                )
-              else
-                // «Всё время»: тот же блок, но без листания.
-                PeriodNavigator.fixed(
-                  label: allTimeLabel(bounds),
-                  caption: 'Всё время',
-                ),
-              const SizedBox(height: 12),
-              if (filtered.isEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 36,
-                    horizontal: 16,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    'За выбранный период записей нет',
-                    style: TextStyle(color: colors.disabledText, fontSize: 14),
-                  ),
-                )
-              else ...[
-                StatsGrid(days: filtered.values.toList()),
-                const SizedBox(height: 12),
-                StatsWeekdays(entries: filtered),
-                const SizedBox(height: 12),
-                StatsTags(days: filtered.values.toList()),
-                const SizedBox(height: 12),
-              ],
-            ],
+          return _StatsHeader(
+            period: _period,
+            pagesBack: _pagesBack,
+            direction: _direction,
+            range: range,
+            bounds: bounds,
+            filtered: filtered,
+            onPeriodChanged: _changePeriod,
+            onPrevious: _goBack,
+            onNext: _goForward,
+            onReset: _goToCurrent,
           );
         }
 
@@ -136,6 +99,100 @@ class _StatsPageState extends State<StatsPage> {
         );
       },
       separatorBuilder: (context, index) => const SizedBox(height: 4),
+    );
+  }
+}
+
+/// Шапка экрана статистики: заголовок, выбор периода, навигатор и блоки графиков.
+class _StatsHeader extends StatelessWidget {
+  const _StatsHeader({
+    required this.period,
+    required this.pagesBack,
+    required this.direction,
+    required this.range,
+    required this.bounds,
+    required this.filtered,
+    required this.onPeriodChanged,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onReset,
+  });
+
+  final StatsPeriod period;
+  final int pagesBack;
+  final int direction;
+  final DateTimeRange? range;
+  final DateTimeRange? bounds;
+  final Map<DateTime, DayEntry> filtered;
+  final ValueChanged<StatsPeriod> onPeriodChanged;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    final days = filtered.values.toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const PageTitle('Статистика'),
+        const SizedBox(height: 6),
+        PeriodSelector(selected: period, onChanged: onPeriodChanged),
+        const SizedBox(height: 8),
+        _buildNavigator(),
+        const SizedBox(height: 12),
+        if (filtered.isEmpty)
+          const _EmptyStatsPlaceholder()
+        else ...[
+          StatsGrid(days: days),
+          const SizedBox(height: 12),
+          StatsWeekdays(entries: filtered),
+          const SizedBox(height: 12),
+          StatsTags(days: days),
+          const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildNavigator() {
+    final r = range;
+    if (r != null) {
+      final b = bounds;
+      return PeriodNavigator(
+        label: periodLabel(period, r),
+        caption: periodCaption(period, pagesBack),
+        direction: direction,
+        canGoPrevious: b != null && r.start.isAfter(b.start),
+        canGoNext: pagesBack > 0,
+        onPrevious: onPrevious,
+        onNext: onNext,
+        onReset: onReset,
+      );
+    }
+
+    return PeriodNavigator.fixed(
+      label: allTimeLabel(bounds),
+      caption: 'Всё время',
+    );
+  }
+}
+
+/// Заглушка, если за выбранный период нет записей.
+class _EmptyStatsPlaceholder extends StatelessWidget {
+  const _EmptyStatsPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+      alignment: Alignment.center,
+      child: Text(
+        'За выбранный период записей нет',
+        style: TextStyle(color: colors.disabledText, fontSize: 14),
+      ),
     );
   }
 }
