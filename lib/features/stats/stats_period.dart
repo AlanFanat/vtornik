@@ -36,6 +36,13 @@ String periodLabel(StatsPeriod period, DateTimeRange range) {
   }
 }
 
+/// Подпись для «Всё время»: от первого записанного дня до последнего.
+/// [bounds] — null, если записей ещё нет.
+String allTimeLabel(DateTimeRange? bounds) {
+  if (bounds == null) return 'Нет записей';
+  return formatDayRange(bounds.start, bounds.end);
+}
+
 /// Мелкая подпись под ней: «Эта неделя», «Прошлый месяц», «3 нед. назад».
 String periodCaption(StatsPeriod period, int pagesBack) {
   final isWeek = period == StatsPeriod.week;

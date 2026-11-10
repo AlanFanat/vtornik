@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../core/colors.dart';
 
-/// Строка листания периода: ‹ подпись ›.
+void _noop() {}
+
+/// Блок периода в статистике. В обычном виде строка листания: ‹ подпись ›.
 /// Работает и стрелками, и свайпом по строке; нажатие на подпись возвращает
-/// к текущему периоду.
+/// к текущему периоду. Вариант [PeriodNavigator.fixed] без стрелок: просто
+/// показывает подпись (для «Всё время»).
 class PeriodNavigator extends StatelessWidget {
   const PeriodNavigator({
     super.key,
@@ -16,7 +19,20 @@ class PeriodNavigator extends StatelessWidget {
     required this.onPrevious,
     required this.onNext,
     required this.onReset,
-  });
+  }) : showArrows = true;
+
+  /// Тот же блок без листания: стрелок нет, свайп и нажатия отключены.
+  const PeriodNavigator.fixed({
+    super.key,
+    required this.label,
+    required this.caption,
+  }) : direction = 1,
+       canGoPrevious = false,
+       canGoNext = false,
+       onPrevious = _noop,
+       onNext = _noop,
+       onReset = _noop,
+       showArrows = false;
 
   final String label;
   final String caption;
@@ -30,10 +46,17 @@ class PeriodNavigator extends StatelessWidget {
   final VoidCallback onPrevious;
   final VoidCallback onNext;
   final VoidCallback onReset;
+  final bool showArrows;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
+    if (!showArrows) {
+      return _Card(
+        child: Center(
+          child: _PeriodLabel(label: label, caption: caption),
+        ),
+      );
+    }
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -43,14 +66,7 @@ class PeriodNavigator extends StatelessWidget {
         if (velocity < -250 && canGoNext) onNext();
         if (velocity > 250 && canGoPrevious) onPrevious();
       },
-      child: Container(
-        // Фиксированная высота: форма не «прыгает» при смене подписи.
-        height: 56,
-        decoration: BoxDecoration(
-          color: colors.card,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: colors.cardBorder),
-        ),
+      child: _Card(
         child: Row(
           children: [
             _ArrowButton(
@@ -75,28 +91,10 @@ class PeriodNavigator extends StatelessWidget {
                         child: child,
                       ),
                     ),
-                    child: Column(
+                    child: _PeriodLabel(
                       key: ValueKey('$label|$caption'),
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: colors.text,
-                          ),
-                        ),
-                        Text(
-                          caption,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
+                      label: label,
+                      caption: caption,
                     ),
                   ),
                 ),
@@ -110,6 +108,61 @@ class PeriodNavigator extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Карточка фиксированной высоты: форма не «прыгает» при смене подписи.
+class _Card extends StatelessWidget {
+  const _Card({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.cardBorder),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _PeriodLabel extends StatelessWidget {
+  const _PeriodLabel({super.key, required this.label, required this.caption});
+
+  final String label;
+  final String caption;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: colors.text,
+          ),
+        ),
+        Text(
+          caption,
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+      ],
     );
   }
 }

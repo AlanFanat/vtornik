@@ -70,12 +70,16 @@ class _StatsPageState extends State<StatsPage> {
     );
   }
 
-  /// Самый ранний день с записью: дальше назад листать незачем.
-  DateTime? _earliestDate() {
+  /// Первый и последний записанный день. null, если записей нет.
+  /// Дальше первого дня назад листать незачем.
+  DateTimeRange? _dateBounds() {
     if (widget.entries.isEmpty) return null;
-    return widget.entries.keys
-        .map(DateUtils.dateOnly)
-        .reduce((a, b) => a.isBefore(b) ? a : b);
+
+    final days = widget.entries.keys.map(DateUtils.dateOnly);
+    return DateTimeRange(
+      start: days.reduce((a, b) => a.isBefore(b) ? a : b),
+      end: days.reduce((a, b) => a.isAfter(b) ? a : b),
+    );
   }
 
   @override
@@ -85,7 +89,7 @@ class _StatsPageState extends State<StatsPage> {
 
     final range = statsRange(_period, today, _pagesBack);
     final filtered = _filterEntries(range);
-    final earliest = _earliestDate();
+    final bounds = _dateBounds();
 
     // Новые дни сверху.
     final sortedEntries = filtered.entries.toList()
@@ -103,20 +107,25 @@ class _StatsPageState extends State<StatsPage> {
               const PageTitle('Статистика'),
               const SizedBox(height: 10),
               _PeriodSelector(selected: _period, onChanged: _changePeriod),
-              if (range != null) ...[
-                const SizedBox(height: 8),
+              const SizedBox(height: 8),
+              if (range != null)
                 PeriodNavigator(
                   label: periodLabel(_period, range),
                   caption: periodCaption(_period, _pagesBack),
                   direction: _direction,
                   canGoPrevious:
-                      earliest != null && range.start.isAfter(earliest),
+                      bounds != null && range.start.isAfter(bounds.start),
                   canGoNext: _pagesBack > 0,
                   onPrevious: _goBack,
                   onNext: _goForward,
                   onReset: _goToCurrent,
+                )
+              else
+                // «Всё время»: тот же блок, но без листания.
+                PeriodNavigator.fixed(
+                  label: allTimeLabel(bounds),
+                  caption: 'Всё время',
                 ),
-              ],
               const SizedBox(height: 12),
               if (filtered.isEmpty)
                 Container(
