@@ -5,6 +5,7 @@ import '../../data/day_entry.dart';
 import '../../widgets/section_title.dart';
 import 'day_card.dart';
 import 'period_navigator.dart';
+import 'period_selector.dart';
 import 'stats_grid.dart';
 import 'stats_period.dart';
 import 'stats_tags.dart';
@@ -105,8 +106,8 @@ class _StatsPageState extends State<StatsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const PageTitle('Статистика'),
-              const SizedBox(height: 10),
-              _PeriodSelector(selected: _period, onChanged: _changePeriod),
+              const SizedBox(height: 6),
+              PeriodSelector(selected: _period, onChanged: _changePeriod),
               const SizedBox(height: 8),
               if (range != null)
                 PeriodNavigator(
@@ -159,63 +160,6 @@ class _StatsPageState extends State<StatsPage> {
         );
       },
       separatorBuilder: (context, index) => const SizedBox(height: 4),
-    );
-  }
-}
-
-class _PeriodSelector extends StatelessWidget {
-  const _PeriodSelector({required this.selected, required this.onChanged});
-
-  final StatsPeriod selected;
-  final ValueChanged<StatsPeriod> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.cardBorder),
-      ),
-      padding: const EdgeInsets.all(3),
-      child: Row(
-        children: [
-          _buildItem(context, StatsPeriod.week, 'Неделя'),
-          _buildItem(context, StatsPeriod.month, 'Месяц'),
-          _buildItem(context, StatsPeriod.allTime, 'Всё время'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildItem(BuildContext context, StatsPeriod period, String title) {
-    final isSelected = selected == period;
-    final colors = context.colors;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => onChanged(period),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.symmetric(vertical: 7),
-          decoration: BoxDecoration(
-            color: isSelected ? accentColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? Colors.white : colors.text,
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
