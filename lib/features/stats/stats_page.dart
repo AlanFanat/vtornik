@@ -71,34 +71,41 @@ class _StatsPageState extends State<StatsPage> {
     final sortedEntries = filtered.entries.toList()
       ..sort((a, b) => b.key.compareTo(a.key));
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(10),
-      // +1: нулевой элемент списка — шапка с переключателем и графиками
-      itemCount: sortedEntries.length + 1,
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return _StatsHeader(
-            period: _period,
-            pagesBack: _pagesBack,
-            direction: _direction,
-            range: range,
-            bounds: bounds,
-            filtered: filtered,
-            onPeriodChanged: _changePeriod,
-            onPrevious: _goBack,
-            onNext: _goForward,
-            onReset: _goToCurrent,
-          );
-        }
-
-        final item = sortedEntries[index - 1];
-        return DayCard(
-          date: item.key,
-          entry: item.value,
-          onTap: () => widget.onDaySelected(item.key),
-        );
-      },
-      separatorBuilder: (context, index) => const SizedBox(height: 4),
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
+          sliver: SliverToBoxAdapter(
+            child: _StatsHeader(
+              period: _period,
+              pagesBack: _pagesBack,
+              direction: _direction,
+              range: range,
+              bounds: bounds,
+              filtered: filtered,
+              onPeriodChanged: _changePeriod,
+              onPrevious: _goBack,
+              onNext: _goForward,
+              onReset: _goToCurrent,
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+          sliver: SliverList.separated(
+            itemCount: sortedEntries.length,
+            itemBuilder: (context, index) {
+              final item = sortedEntries[index];
+              return DayCard(
+                date: item.key,
+                entry: item.value,
+                onTap: () => widget.onDaySelected(item.key),
+              );
+            },
+            separatorBuilder: (context, index) => const SizedBox(height: 4),
+          ),
+        ),
+      ],
     );
   }
 }
