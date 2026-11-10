@@ -13,6 +13,7 @@ class StatsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final scheme = Theme.of(context).colorScheme;
 
     // Только непустые оценки
     final ratingsOnly = days
@@ -33,37 +34,116 @@ class StatsGrid extends StatelessWidget {
     // Форматирование среднего: 4.333... → "4.3"
     final averageText = formatAverage(averageRating);
 
+    final avgColor = ratingsOnly.isEmpty
+        ? colors.disabledText
+        : ratingColor(averageRating.round().clamp(1, 10));
+
     return Column(
       children: [
-        IntrinsicHeight(
+        // Объединённый верхний блок: кольцевая диаграмма + доп. инфо
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: colors.card,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: colors.cardBorder),
+          ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: StatCard(
-                  title: 'Средний балл',
-                  value: averageText,
-                  bottomText: 'Из 10,0 возможных',
-                  iconData: Icons.trending_up_rounded,
-                  mainColor: ratingsOnly.isEmpty
-                      ? colors.disabledText
-                      : ratingColor(averageRating.round()),
+              // Кольцевая диаграмма среднего балла
+              SizedBox(
+                width: 76,
+                height: 76,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 76,
+                      height: 76,
+                      child: CircularProgressIndicator(
+                        value: ratingsOnly.isEmpty
+                            ? 0.0
+                            : (averageRating / 10).clamp(0.0, 1.0),
+                        strokeWidth: 7,
+                        strokeCap: StrokeCap.round,
+                        backgroundColor: colors.surface,
+                        valueColor: AlwaysStoppedAnimation<Color>(avgColor),
+                      ),
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          ratingsOnly.isEmpty ? '—' : averageText,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: avgColor,
+                            height: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'из 10',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 16),
+              // Дополнительная информация справа
               Expanded(
-                child: StatCard(
-                  title: 'Всего дней',
-                  value: '$daysCount',
-                  bottomText: 'С оценкой: $ratingDaysCount',
-                  iconData: Icons.event_note_rounded,
-                  mainColor: accentColor,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Средний балл',
+                            style: TextStyle(
+                              color: colors.text,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.trending_up_rounded,
+                          size: 20,
+                          color: avgColor,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    _MetricRow(
+                      icon: Icons.event_note_rounded,
+                      iconColor: accentColor,
+                      label: 'Заполнено дней',
+                      value: '$daysCount',
+                    ),
+                    const SizedBox(height: 6),
+                    _MetricRow(
+                      icon: Icons.star_rounded,
+                      iconColor: avgColor,
+                      label: 'С оценкой',
+                      value: '$ratingDaysCount',
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 6),
+        // Нижний ряд: отличные и трудные дни
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -88,6 +168,50 @@ class StatsGrid extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MetricRow extends StatelessWidget {
+  const _MetricRow({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final scheme = Theme.of(context).colorScheme;
+
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: iconColor),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: colors.text,
           ),
         ),
       ],
