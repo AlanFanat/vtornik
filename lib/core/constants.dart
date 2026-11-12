@@ -10,4 +10,4 @@ const Duration noteSaveDelay = Duration(milliseconds: 400);
 const int minTagDays = 1;
 
 /// Разница оценок в пределах ±этого значения считается «нейтральной».
-const double neutralImpact = 0.3;
+const double neutralImpact = 0.1;
