@@ -113,7 +113,9 @@ class _WeekdayBar extends StatelessWidget {
     final value = average;
 
     const double maxBarHeight = 100;
-    final barHeight = value == null ? 0.0 : (maxBarHeight * (value / 10)).clamp(0.0, maxBarHeight);
+    final barHeight = value == null
+        ? 0.0
+        : (maxBarHeight * (value / 10)).clamp(0.0, maxBarHeight);
 
     return Column(
       children: [
@@ -133,7 +135,9 @@ class _WeekdayBar extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Container(
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic, // плавное замедление к концу
                   height: barHeight,
                   decoration: BoxDecoration(
                     color: value == null
@@ -149,10 +153,7 @@ class _WeekdayBar extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 11, color: colors.text),
-        ),
+        Text(label, style: TextStyle(fontSize: 11, color: colors.text)),
         Text(
           '$sampleCount дн.',
           style: const TextStyle(fontSize: 9, color: Colors.grey),
