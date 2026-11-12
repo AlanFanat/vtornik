@@ -91,8 +91,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     });
   }
 
-  void _toggleCalendar() {
-    setState(() => _isCalendarCollapsed = !_isCalendarCollapsed);
+  void _toggleCalendar() => _setCalendarCollapsed(!_isCalendarCollapsed);
+
+  void _setCalendarCollapsed(bool collapsed) {
+    setState(() => _isCalendarCollapsed = collapsed);
     // Сохраняем асинхронно, не блокируя интерфейс.
     unawaited(widget.storage.setCalendarCollapsed(_isCalendarCollapsed));
   }
@@ -156,7 +158,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           const SizedBox(height: 6),
           MonthCalendar(
             month: _visibleMonth,
-            weekStart: _weekStart,
             isCollapsed: _isCalendarCollapsed,
             selectedDate: _selectedDate,
             entries: _diary.entries,

@@ -7,24 +7,26 @@ import 'day_cell.dart';
 
 /// Карточка календаря: строка навигации, подписи дней недели и сетка дней.
 /// Заголовок «Календарь» и кнопки «Сегодня» / «Свернуть» находятся в HomePage,
-/// всё состояние (месяц, неделя, режим) тоже хранится там.
+/// состояние (месяц, режим) тоже хранится там.
+///
+/// Сворачивание управляется только снаружи через [isCollapsed]:
+/// при изменении режима карточка плавно анимирует переход между
+/// «месяц» и «неделя» (жест по сетке отключён).
 ///
 /// Параметры:
-/// - [month]          — месяц, показываемый в заголовке карточки
-///                      (в свёрнутом режиме — «четверговый» месяц недели).
-/// - [weekStart]      — понедельник показанной недели (для свёрнутого режима).
-/// - [isCollapsed]    — true: одна неделя, false: весь месяц.
-/// - [selectedDate]   — выбранная дата (подсвечивается).
-/// - [entries]        — записи по датам (ключи — dateOnly).
-/// - [canGoNext]      — можно ли листать вперёд.
-/// - [onPrevious]     — листать назад (месяц или неделя).
-/// - [onNext]         — листать вперёд (месяц или неделя).
-/// - [onDateSelected] — выбор конкретного дня.
-class MonthCalendar extends StatelessWidget {
+/// - [month]         — месяц, показываемый в заголовке карточки.
+/// - [isCollapsed]   — целевое состояние: true — неделя, false — месяц.
+/// - [selectedDate]  — выбранная дата (подсвечивается); неделя в
+///                     свёрнутом режиме — та, где лежит эта дата.
+/// - [entries]       — записи по датам (ключи — dateOnly).
+/// - [canGoNext]     — можно ли листать вперёд.
+/// - [onPrevious]    — листать назад (месяц или неделя).
+/// - [onNext]        — листать вперёд (месяц или неделя).
+/// - [onDateSelected]— выбор конкретного дня.
+class MonthCalendar extends StatefulWidget {
   const MonthCalendar({
     super.key,
     required this.month,
-    required this.weekStart,
     required this.isCollapsed,
     required this.selectedDate,
     required this.entries,
@@ -35,7 +37,6 @@ class MonthCalendar extends StatelessWidget {
   });
 
   final DateTime month;
-  final DateTime weekStart;
   final bool isCollapsed;
   final DateTime selectedDate;
   final Map<DateTime, DayEntry> entries;
@@ -44,31 +45,150 @@ class MonthCalendar extends StatelessWidget {
   final VoidCallback onNext;
   final ValueChanged<DateTime> onDateSelected;
 
-  /// Список дат для сетки. null означает пустую ячейку (только в развёрнутом режиме).
-  List<DateTime?> get _cells {
-    if (isCollapsed) {
-      // Ровно 7 дней начиная с weekStart, пустых ячеек нет.
-      return List.generate(7, (i) => weekStart.add(Duration(days: i)));
-    }
-    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
-    // Dart: weekday 1 = Пн, поэтому отступ = weekday - 1.
-    final startOffset = DateTime(month.year, month.month, 1).weekday - 1;
-    return [
-      // Пустые ячейки перед первым числом.
-      ...List<DateTime?>.filled(startOffset, null),
-      // Дни месяца.
-      ...List.generate(
-        daysInMonth,
-        (i) => DateTime(month.year, month.month, i + 1),
-      ),
-    ];
+  @override
+  State<MonthCalendar> createState() => _MonthCalendarState();
+}
+
+class _MonthCalendarState extends State<MonthCalendar>
+    with SingleTickerProviderStateMixin {
+  static const _spacing = 6.0;
+  static const _aspectRatio = 1.4;
+
+  /// 0 — показан весь месяц, 1 — одна неделя.
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 280),
+    value: widget.isCollapsed ? 1.0 : 0.0,
+  );
+
+  /// Остальные недели гаснут в первой части сворачивания.
+  late final Animation<double> _otherRowsOpacity = Tween<double>(
+    begin: 1,
+    end: 0,
+  ).animate(
+    CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.6)),
+  );
+
+  /// Дни соседних месяцев в выбранной неделе проявляются ближе к концу.
+  late final Animation<double> _edgeCellsOpacity = CurvedAnimation(
+    parent: _controller,
+    curve: const Interval(0.4, 1.0),
+  );
+
+  /// Куда сейчас едет (или уже приехала) анимация.
+  late bool _goal = widget.isCollapsed;
+
+  @override
+  void didUpdateWidget(MonthCalendar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Состояние поменяли снаружи (кнопка в заголовке, восстановление).
+    if (widget.isCollapsed != _goal) _settle(widget.isCollapsed);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _settle(bool collapsed) {
+    _goal = collapsed;
+    _controller.animateTo(
+      collapsed ? 1.0 : 0.0,
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  // ----- Построение -----
+
+  Widget _buildCell({
+    required DateTime date,
+    required bool inMonth,
+    required bool isSelectedRow,
+    required DateTime today,
+    required DateTime selected,
+  }) {
+    // Дни соседних месяцев показываем только в выбранной неделе,
+    // и только при сворачивании.
+    if (!inMonth && !isSelectedRow) return const SizedBox.shrink();
+
+    final entry = widget.entries[date];
+    final cell = DayCell(
+      date: date,
+      rating: entry?.rating,
+      isSelected: date == selected,
+      isToday: date == today,
+      isFuture: date.isAfter(today),
+      hasDetails: entry?.hasDetails ?? false,
+      onTap: () => widget.onDateSelected(date),
+    );
+
+    if (inMonth) return cell;
+
+    return AnimatedBuilder(
+      animation: _controller,
+      child: FadeTransition(opacity: _edgeCellsOpacity, child: cell),
+      // Пока ячейки не видны, они не должны ловить нажатия.
+      builder: (context, child) =>
+          IgnorePointer(ignoring: _controller.value < 0.5, child: child),
+    );
+  }
+
+  Widget _buildRow({
+    required int row,
+    required int selectedRow,
+    required DateTime gridStart,
+    required double cellHeight,
+    required DateTime today,
+    required DateTime selected,
+  }) {
+    final isSelectedRow = row == selectedRow;
+
+    final rowWidget = Row(
+      children: [
+        for (var c = 0; c < 7; c++) ...[
+          if (c > 0) const SizedBox(width: _spacing),
+          Expanded(
+            child: SizedBox(
+              height: cellHeight,
+              child: _buildCell(
+                date: DateUtils.addDaysToDate(gridStart, row * 7 + c),
+                inMonth:
+                    DateUtils.addDaysToDate(gridStart, row * 7 + c).month ==
+                    widget.month.month,
+                isSelectedRow: isSelectedRow,
+                today: today,
+                selected: selected,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+
+    return isSelectedRow
+        ? rowWidget
+        : FadeTransition(opacity: _otherRowsOpacity, child: rowWidget);
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final month = widget.month;
     final today = DateUtils.dateOnly(DateTime.now());
-    final selected = DateUtils.dateOnly(selectedDate);
+    final selected = DateUtils.dateOnly(widget.selectedDate);
+
+    // Геометрия месяца: понедельник первой недели и число недель.
+    final firstOfMonth = DateTime(month.year, month.month, 1);
+    final startOffset = firstOfMonth.weekday - 1; // Пн = 1
+    final daysInMonth = DateUtils.getDaysInMonth(month.year, month.month);
+    final rowCount = ((startOffset + daysInMonth) / 7).ceil();
+    final gridStart = DateUtils.addDaysToDate(firstOfMonth, -startOffset);
+
+    // Неделя, в которой лежит выбранный день (она остаётся при сворачивании).
+    final selectedRow = selected.month == month.month
+        ? ((startOffset + selected.day - 1) ~/ 7).clamp(0, rowCount - 1)
+        : 0;
 
     final buttonConstraints = BoxConstraints.tightFor(
       width: 40,
@@ -92,7 +212,7 @@ class MonthCalendar extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 tooltip: 'Назад',
                 icon: const Icon(Icons.chevron_left),
-                onPressed: onPrevious,
+                onPressed: widget.onPrevious,
               ),
               Expanded(
                 child: Center(
@@ -112,7 +232,7 @@ class MonthCalendar extends StatelessWidget {
                 tooltip: 'Вперёд',
                 icon: const Icon(Icons.chevron_right),
                 // null отключает кнопку, если листать вперёд нельзя.
-                onPressed: canGoNext ? onNext : null,
+                onPressed: widget.canGoNext ? widget.onNext : null,
               ),
             ],
           ),
@@ -127,10 +247,7 @@ class MonthCalendar extends StatelessWidget {
                   child: Center(
                     child: Text(
                       day,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
-                      ),
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                   ),
                 ),
@@ -139,49 +256,72 @@ class MonthCalendar extends StatelessWidget {
 
           const SizedBox(height: 6),
 
-          // Сетка дней с анимацией изменения высоты.
-          AnimatedSize(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOut,
-            alignment: Alignment.topCenter,
-            child: Builder(
-              builder: (context) {
-                final cells = _cells;
-                return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: cells.length,
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 7,
-                    crossAxisSpacing: 6,
-                    mainAxisSpacing: 6,
-                    childAspectRatio: 1.4,
-                  ),
-                  itemBuilder: (context, index) {
-                    final date = cells[index];
+          // Сетка. Жест отключён — анимация управляется только через
+          // изменение [isCollapsed] снаружи.
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cellWidth = (constraints.maxWidth - 6 * _spacing) / 7;
+              final cellHeight = cellWidth / _aspectRatio;
+              final rowStep = cellHeight + _spacing;
+              final fullHeight =
+                  rowCount * cellHeight + (rowCount - 1) * _spacing;
 
-                    // Пустая ячейка (только в развёрнутом режиме).
-                    if (date == null) return const SizedBox.shrink();
+              // Строки строятся один раз и не пересобираются на каждом
+              // кадре анимации: меняются только высота и сдвиг.
+              final rows = Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var r = 0; r < rowCount; r++) ...[
+                    if (r > 0) const SizedBox(height: _spacing),
+                    _buildRow(
+                      row: r,
+                      selectedRow: selectedRow,
+                      gridStart: gridStart,
+                      cellHeight: cellHeight,
+                      today: today,
+                      selected: selected,
+                    ),
+                  ],
+                ],
+              );
 
-                    final dateOnly = DateUtils.dateOnly(date);
-                    final entry = entries[dateOnly];
+              // Высота «месяца» сама плавно меняется, когда в месяце
+              // 5 или 6 недель.
+              return TweenAnimationBuilder<double>(
+                tween: Tween<double>(end: fullHeight),
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                child: rows,
+                builder: (context, animatedFullHeight, child) {
+                  return AnimatedBuilder(
+                    animation: _controller,
+                    child: child,
+                    builder: (context, child) {
+                      final t = _controller.value;
+                      final height =
+                          animatedFullHeight + (cellHeight - animatedFullHeight) * t;
 
-                    return DayCell(
-                      date: dateOnly,
-                      rating: entry?.rating,
-                      isSelected: dateOnly == selected,
-                      isToday: dateOnly == today,
-                      isFuture: dateOnly.isAfter(today),
-                      hasDetails: entry?.hasDetails ?? false,
-                      onTap: () => onDateSelected(dateOnly),
-                    );
-                  },
-                );
-              },
-            ),
+                      return SizedBox(
+                        height: height,
+                        child: ClipRect(
+                          child: OverflowBox(
+                            alignment: Alignment.topCenter,
+                            minHeight: 0,
+                            maxHeight: double.infinity,
+                            child: Transform.translate(
+                              // Выбранная неделя «подъезжает» к верху.
+                              offset: Offset(0, -selectedRow * rowStep * t),
+                              child: child,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              );
+            },
           ),
-          // Нижний padding обеспечивается EdgeInsets.all(10) контейнера.
         ],
       ),
     );
