@@ -170,7 +170,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           DayEditor(
             // Новый ключ на каждую дату -> редактор пересоздаётся
             // и подхватывает сохранённую запись этого дня.
-            key: ValueKey('$_selectedDate#${_diary.revision}'),
+            key: ValueKey(_selectedDate),
             selectedDate: _selectedDate,
             entry: _diary.entries[_selectedDate],
             availableTags: _diary.tags,

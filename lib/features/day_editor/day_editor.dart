@@ -48,6 +48,17 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
 
   Timer? _noteTimer;
   SaveStatus _status = SaveStatus.idle;
+  Timer? _saveTimer;
+  void _setSaveStatus(bool saved) {
+    _saveTimer?.cancel();
+    final status = saved ? SaveStatus.saved : SaveStatus.failed;
+
+    setState(() => _status = status);
+
+    _saveTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _status = SaveStatus.idle);
+    });
+  }
 
   @override
   void initState() {
@@ -58,8 +69,8 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _saveTimer?.cancel(); // <-- Не забываем отменять таймер индикатора
 
-    // Заметку не успели сохранить (сменили день за доли секунды) — сохраняем сейчас.
     if (_noteTimer?.isActive ?? false) {
       _noteTimer!.cancel();
       unawaited(widget.onChanged(widget.selectedDate, _currentEntry));
@@ -75,6 +86,25 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
       if (_noteTimer?.isActive ?? false) unawaited(_saveNow());
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant DayEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Если переключили дату, сохраняем старый черновик и загружаем новый день
+    if (oldWidget.selectedDate != widget.selectedDate) {
+      if (_noteTimer?.isActive ?? false) {
+        _noteTimer!.cancel();
+        unawaited(widget.onChanged(oldWidget.selectedDate, _currentEntry));
+      }
+      _saveTimer?.cancel();
+      _status = SaveStatus.idle;
+      _rating = widget.entry?.rating;
+      _tags
+        ..clear()
+        ..addAll(widget.entry?.tags ?? const {});
+      _noteController.text = widget.entry?.note ?? '';
     }
   }
 
@@ -98,7 +128,7 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
     final saved = await widget.onChanged(widget.selectedDate, _currentEntry);
     if (!mounted) return;
 
-    setState(() => _status = saved ? SaveStatus.saved : SaveStatus.failed);
+    _setSaveStatus(saved);
   }
 
   /// Заметку сохраняем не на каждую букву, а когда пользователь на миг замолчал.
@@ -214,7 +244,14 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DayTitle(date: widget.selectedDate),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: DayTitle(date: widget.selectedDate)),
+              SaveIndicator(status: _status),
+            ],
+          ),
+
           const SizedBox(height: 8),
           RatingRow(selected: _rating, onSelected: _selectRating),
           const SizedBox(height: 10),
@@ -228,12 +265,7 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
           const SizedBox(height: 10),
           // Индикатор сохранения справа от заголовка: строка всегда одной
           // высоты, форма не «прыгает», когда индикатор появляется.
-          Row(
-            children: [
-              const Expanded(child: SectionTitle('Заметка')),
-              SaveIndicator(status: _status),
-            ],
-          ),
+          Row(children: [const Expanded(child: SectionTitle('Заметка'))]),
           const SizedBox(height: 4),
           TextField(
             controller: _noteController,

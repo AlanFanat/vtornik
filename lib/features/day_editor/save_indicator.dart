@@ -19,11 +19,11 @@ class SaveIndicator extends StatelessWidget {
         return const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check, size: 14, color: Colors.grey),
+            Icon(Icons.check, size: 14, color: impactPositiveColor),
             SizedBox(width: 4),
             Text(
               'Сохранено',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
+              style: TextStyle(color: impactPositiveColor, fontSize: 12),
             ),
           ],
         );
@@ -31,11 +31,11 @@ class SaveIndicator extends StatelessWidget {
         return const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 14, color: errorColor),
+            Icon(Icons.error_outline, size: 14, color: impactNegativeColor),
             SizedBox(width: 4),
             Text(
               'Не сохранилось',
-              style: TextStyle(color: errorColor, fontSize: 12),
+              style: TextStyle(color: impactNegativeColor, fontSize: 12),
             ),
           ],
         );
