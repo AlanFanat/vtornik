@@ -39,7 +39,7 @@ class _StatsPageState extends State<StatsPage> {
     setState(() {
       _period = period;
       _pagesBack = 0;
-      _direction = 1;
+      _direction = 0; // было 1: смена типа периода — фейд, а не листание
     });
   }
 
