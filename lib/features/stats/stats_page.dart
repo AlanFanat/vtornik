@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:vtornik/features/stats/period_summary_card.dart';
 
-import '../../core/colors.dart';
 import '../../data/day_entry.dart';
 import '../../widgets/section_title.dart';
 import 'day_card.dart';
 import 'period_math.dart';
-import 'period_navigator.dart';
 import 'period_selector.dart';
-import 'stats_grid.dart';
 import 'stats_tags.dart';
 import 'stats_weekdays.dart';
 
@@ -146,60 +144,33 @@ class _StatsHeader extends StatelessWidget {
         const PageTitle('Статистика'),
         const SizedBox(height: 6),
         PeriodSelector(selected: period, onChanged: onPeriodChanged),
+        const SizedBox(height: 6),
+
+        PeriodSummaryCard(
+          label: range != null
+              ? periodLabel(period, range!)
+              : allTimeLabel(bounds),
+          caption: range != null
+              ? periodCaption(period, pagesBack)
+              : 'Всё время',
+          direction: direction,
+          canGoPrevious:
+              range != null &&
+              bounds != null &&
+              range!.start.isAfter(bounds!.start),
+          canGoNext: pagesBack > 0,
+          onPrevious: onPrevious,
+          onNext: onNext,
+          onReset: onReset,
+          days: days,
+        ),
+
         const SizedBox(height: 8),
-        _buildNavigator(),
-        const SizedBox(height: 12),
-        if (filtered.isEmpty)
-          const _EmptyStatsPlaceholder()
-        else ...[
-          StatsGrid(days: days),
-          const SizedBox(height: 12),
-          StatsWeekdays(entries: filtered),
-          const SizedBox(height: 12),
-          StatsTags(days: days),
-          const SizedBox(height: 12),
-        ],
+        StatsWeekdays(entries: filtered),
+        const SizedBox(height: 8),
+        StatsTags(days: days),
+        const SizedBox(height: 8),
       ],
-    );
-  }
-
-  Widget _buildNavigator() {
-    final r = range;
-    if (r != null) {
-      final b = bounds;
-      return PeriodNavigator(
-        label: periodLabel(period, r),
-        caption: periodCaption(period, pagesBack),
-        direction: direction,
-        canGoPrevious: b != null && r.start.isAfter(b.start),
-        canGoNext: pagesBack > 0,
-        onPrevious: onPrevious,
-        onNext: onNext,
-        onReset: onReset,
-      );
-    }
-
-    return PeriodNavigator.fixed(
-      label: allTimeLabel(bounds),
-      caption: 'Всё время',
-    );
-  }
-}
-
-/// Заглушка, если за выбранный период нет записей.
-class _EmptyStatsPlaceholder extends StatelessWidget {
-  const _EmptyStatsPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
-      alignment: Alignment.center,
-      child: Text(
-        'За выбранный период записей нет',
-        style: TextStyle(color: colors.disabledText, fontSize: 14),
-      ),
     );
   }
 }
