@@ -201,9 +201,9 @@ class _StatsHeader extends StatelessWidget {
           days: days,
         ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         StatsWeekdays(entries: filtered),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         StatsTags(days: days),
         const SizedBox(height: 8),
       ],
