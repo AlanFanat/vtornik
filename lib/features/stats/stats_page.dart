@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:vtornik/features/stats/period_summary_card.dart';
 
+import '../../core/colors.dart';
 import '../../data/day_entry.dart';
 import '../../widgets/section_title.dart';
 import 'day_card.dart';
 import 'period_math.dart';
 import 'period_selector.dart';
+import 'period_summary_card.dart';
 import 'stats_tags.dart';
 import 'stats_weekdays.dart';
 
@@ -88,21 +89,56 @@ class _StatsPageState extends State<StatsPage> {
             ),
           ),
         ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-          sliver: SliverList.separated(
-            itemCount: sortedEntries.length,
-            itemBuilder: (context, index) {
-              final item = sortedEntries[index];
-              return DayCard(
-                date: item.key,
-                entry: item.value,
-                onTap: () => widget.onDaySelected(item.key),
-              );
-            },
-            separatorBuilder: (context, index) => const SizedBox(height: 4),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
+            child: Row(
+              children: [
+                const SectionTitle('Дни за период'),
+                const SizedBox(width: 8),
+                Text(
+                  '${sortedEntries.length}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: context.colors.disabledText,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+        if (sortedEntries.isEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Center(
+                child: Text(
+                  'Нет записей за этот период',
+                  style: TextStyle(
+                    color: context.colors.disabledText,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+            sliver: SliverList.separated(
+              itemCount: sortedEntries.length,
+              itemBuilder: (context, index) {
+                final item = sortedEntries[index];
+                return DayCard(
+                  date: item.key,
+                  entry: item.value,
+                  onTap: () => widget.onDaySelected(item.key),
+                );
+              },
+              separatorBuilder: (context, index) => const SizedBox(height: 4),
+            ),
+          ),
       ],
     );
   }
