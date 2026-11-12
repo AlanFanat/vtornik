@@ -8,21 +8,6 @@ import 'day_cell.dart';
 /// Карточка календаря: строка навигации, подписи дней недели и сетка дней.
 /// Заголовок «Календарь» и кнопки «Сегодня» / «Свернуть» находятся в HomePage,
 /// состояние (месяц, режим) тоже хранится там.
-///
-/// Сворачивание управляется только снаружи через [isCollapsed]:
-/// при изменении режима карточка плавно анимирует переход между
-/// «месяц» и «неделя» (жест по сетке отключён).
-///
-/// Параметры:
-/// - [month]         — месяц, показываемый в заголовке карточки.
-/// - [isCollapsed]   — целевое состояние: true — неделя, false — месяц.
-/// - [selectedDate]  — выбранная дата (подсвечивается); неделя в
-///                     свёрнутом режиме — та, где лежит эта дата.
-/// - [entries]       — записи по датам (ключи — dateOnly).
-/// - [canGoNext]     — можно ли листать вперёд.
-/// - [onPrevious]    — листать назад (месяц или неделя).
-/// - [onNext]        — листать вперёд (месяц или неделя).
-/// - [onDateSelected]— выбор конкретного дня.
 class MonthCalendar extends StatefulWidget {
   const MonthCalendar({
     super.key,
@@ -78,6 +63,9 @@ class _MonthCalendarState extends State<MonthCalendar>
   /// Куда сейчас едет (или уже приехала) анимация.
   late bool _goal = widget.isCollapsed;
 
+  // --- Переменные для обработки горизонтальных свайпов ---
+  double _dragDistance = 0;
+
   @override
   void didUpdateWidget(MonthCalendar oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -99,6 +87,34 @@ class _MonthCalendarState extends State<MonthCalendar>
     );
   }
 
+  // ----- Логика свайпов -----
+
+  void _onHorizontalDragStart(DragStartDetails details) {
+    _dragDistance = 0;
+  }
+
+  void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    _dragDistance += details.primaryDelta ?? 0;
+  }
+
+  void _onHorizontalDragEnd(DragEndDetails details) {
+    const velocityThreshold = 250.0;
+    const distanceThreshold = 50.0; // Сдвиг от 50 пикселей
+
+    final velocity = details.primaryVelocity ?? 0;
+
+    if (velocity > velocityThreshold || _dragDistance > distanceThreshold) {
+      // Свайп вправо -> назад
+      widget.onPrevious();
+    } else if (velocity < -velocityThreshold || _dragDistance < -distanceThreshold) {
+      // Свайп влево -> вперёд (если можно)
+      if (widget.canGoNext) {
+        widget.onNext();
+      }
+    }
+    _dragDistance = 0;
+  }
+
   // ----- Построение -----
 
   Widget _buildCell({
@@ -108,8 +124,6 @@ class _MonthCalendarState extends State<MonthCalendar>
     required DateTime today,
     required DateTime selected,
   }) {
-    // Дни соседних месяцев показываем только в выбранной неделе,
-    // и только при сворачивании.
     if (!inMonth && !isSelectedRow) return const SizedBox.shrink();
 
     final entry = widget.entries[date];
@@ -128,7 +142,6 @@ class _MonthCalendarState extends State<MonthCalendar>
     return AnimatedBuilder(
       animation: _controller,
       child: FadeTransition(opacity: _edgeCellsOpacity, child: cell),
-      // Пока ячейки не видны, они не должны ловить нажатия.
       builder: (context, child) =>
           IgnorePointer(ignoring: _controller.value < 0.5, child: child),
     );
@@ -185,7 +198,7 @@ class _MonthCalendarState extends State<MonthCalendar>
     final rowCount = ((startOffset + daysInMonth) / 7).ceil();
     final gridStart = DateUtils.addDaysToDate(firstOfMonth, -startOffset);
 
-    // Неделя, в которой лежит выбранный день (она остаётся при сворачивании).
+    // Неделя, в которой лежит выбранный день.
     final selectedRow = selected.month == month.month
         ? ((startOffset + selected.day - 1) ~/ 7).clamp(0, rowCount - 1)
         : 0;
@@ -194,6 +207,12 @@ class _MonthCalendarState extends State<MonthCalendar>
       width: 40,
       height: kMinInteractiveDimension,
     );
+
+    // Уникальный ключ для плавного перехода через AnimatedSwitcher
+    final currentWeekStart = gridStart.add(Duration(days: selectedRow * 7));
+    final viewKey = widget.isCollapsed
+        ? ValueKey('week_${currentWeekStart.year}_${currentWeekStart.month}_${currentWeekStart.day}')
+        : ValueKey('month_${month.year}_${month.month}');
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -231,7 +250,6 @@ class _MonthCalendarState extends State<MonthCalendar>
                 padding: EdgeInsets.zero,
                 tooltip: 'Вперёд',
                 icon: const Icon(Icons.chevron_right),
-                // null отключает кнопку, если листать вперёд нельзя.
                 onPressed: widget.canGoNext ? widget.onNext : null,
               ),
             ],
@@ -256,71 +274,82 @@ class _MonthCalendarState extends State<MonthCalendar>
 
           const SizedBox(height: 6),
 
-          // Сетка. Жест отключён — анимация управляется только через
-          // изменение [isCollapsed] снаружи.
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final cellWidth = (constraints.maxWidth - 6 * _spacing) / 7;
-              final cellHeight = cellWidth / _aspectRatio;
-              final rowStep = cellHeight + _spacing;
-              final fullHeight =
-                  rowCount * cellHeight + (rowCount - 1) * _spacing;
+          // Сетка с поддержкой жестов (свайпы) и плавной анимации
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: _onHorizontalDragStart,
+            onHorizontalDragUpdate: _onHorizontalDragUpdate,
+            onHorizontalDragEnd: _onHorizontalDragEnd,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final cellWidth = (constraints.maxWidth - 6 * _spacing) / 7;
+                final cellHeight = cellWidth / _aspectRatio;
+                final rowStep = cellHeight + _spacing;
+                final fullHeight =
+                    rowCount * cellHeight + (rowCount - 1) * _spacing;
 
-              // Строки строятся один раз и не пересобираются на каждом
-              // кадре анимации: меняются только высота и сдвиг.
-              final rows = Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (var r = 0; r < rowCount; r++) ...[
-                    if (r > 0) const SizedBox(height: _spacing),
-                    _buildRow(
-                      row: r,
-                      selectedRow: selectedRow,
-                      gridStart: gridStart,
-                      cellHeight: cellHeight,
-                      today: today,
-                      selected: selected,
-                    ),
-                  ],
-                ],
-              );
+                // Оборачиваем ряды в AnimatedSwitcher для плавного кросс-фейда
+                final rows = AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  switchInCurve: Curves.easeInOut,
+                  switchOutCurve: Curves.easeInOut,
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+                  child: Column(
+                    key: viewKey,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var r = 0; r < rowCount; r++) ...[
+                        if (r > 0) const SizedBox(height: _spacing),
+                        _buildRow(
+                          row: r,
+                          selectedRow: selectedRow,
+                          gridStart: gridStart,
+                          cellHeight: cellHeight,
+                          today: today,
+                          selected: selected,
+                        ),
+                      ],
+                    ],
+                  ),
+                );
 
-              // Высота «месяца» сама плавно меняется, когда в месяце
-              // 5 или 6 недель.
-              return TweenAnimationBuilder<double>(
-                tween: Tween<double>(end: fullHeight),
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOut,
-                child: rows,
-                builder: (context, animatedFullHeight, child) {
-                  return AnimatedBuilder(
-                    animation: _controller,
-                    child: child,
-                    builder: (context, child) {
-                      final t = _controller.value;
-                      final height =
-                          animatedFullHeight + (cellHeight - animatedFullHeight) * t;
+                // Плавное изменение высоты и сворачивание/разворачивание
+                return TweenAnimationBuilder<double>(
+                  tween: Tween<double>(end: fullHeight),
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  child: rows,
+                  builder: (context, animatedFullHeight, child) {
+                    return AnimatedBuilder(
+                      animation: _controller,
+                      child: child,
+                      builder: (context, child) {
+                        final t = _controller.value;
+                        final height =
+                            animatedFullHeight + (cellHeight - animatedFullHeight) * t;
 
-                      return SizedBox(
-                        height: height,
-                        child: ClipRect(
-                          child: OverflowBox(
-                            alignment: Alignment.topCenter,
-                            minHeight: 0,
-                            maxHeight: double.infinity,
-                            child: Transform.translate(
-                              // Выбранная неделя «подъезжает» к верху.
-                              offset: Offset(0, -selectedRow * rowStep * t),
-                              child: child,
+                        return SizedBox(
+                          height: height,
+                          child: ClipRect(
+                            child: OverflowBox(
+                              alignment: Alignment.topCenter,
+                              minHeight: 0,
+                              maxHeight: double.infinity,
+                              child: Transform.translate(
+                                offset: Offset(0, -selectedRow * rowStep * t),
+                                child: child,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              );
-            },
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ],
       ),
