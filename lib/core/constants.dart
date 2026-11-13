@@ -3,6 +3,12 @@ const List<String> defaultTags = ['Работа', 'Френды', 'Школа'];
 
 const int maxTagLength = 20;
 
+/// Максимум рядов тегов на форме дня, пока не появится кнопка «Ещё».
+const int maxTagRows = 3;
+
+/// За сколько последних дней считать частоту использования тегов.
+const int tagSortWindowDays = 10;
+
 /// Через сколько после последнего символа заметка сохраняется сама.
 const Duration noteSaveDelay = Duration(milliseconds: 400);
 

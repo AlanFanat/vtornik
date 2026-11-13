@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -45,10 +45,10 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
   late final TextEditingController _noteController = TextEditingController(
     text: widget.entry?.note ?? '',
   );
-
   Timer? _noteTimer;
   SaveStatus _status = SaveStatus.idle;
   Timer? _saveTimer;
+
   void _setSaveStatus(bool saved) {
     _saveTimer?.cancel();
     final status = saved ? SaveStatus.saved : SaveStatus.failed;
@@ -69,13 +69,13 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _saveTimer?.cancel(); // <-- Не забываем отменять таймер индикатора
+    _saveTimer?.cancel();
 
+    // Заметку не успели сохранить (сменили день за доли секунды) — сохраняем сейчас.
     if (_noteTimer?.isActive ?? false) {
       _noteTimer!.cancel();
       unawaited(widget.onChanged(widget.selectedDate, _currentEntry));
     }
-
     _noteController.dispose();
     super.dispose();
   }
@@ -124,10 +124,8 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
 
   Future<void> _saveNow() async {
     _noteTimer?.cancel();
-
     final saved = await widget.onChanged(widget.selectedDate, _currentEntry);
     if (!mounted) return;
-
     _setSaveStatus(saved);
   }
 
@@ -158,26 +156,22 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
     unawaited(_saveNow());
   }
 
-  Future<void> _addTag() async {
-    final name = await showDialog<String>(
-      context: context,
-      builder: (_) =>
-          const TagNameDialog(title: 'Новый тег', confirmLabel: 'Добавить'),
-    );
-    if (name == null || !mounted) return;
-
-    // Такой тег уже есть (без учёта регистра) — просто выбираем его.
+  void _addTag(String name) {
     final existing = widget.availableTags
         .where((tag) => tag.toLowerCase() == name.toLowerCase())
         .firstOrNull;
     if (existing != null) {
-      // Дубликат — выбираем существующий тег для текущего дня.
       setState(() => _tags.add(existing));
       unawaited(_saveNow());
     } else {
-      // Новый тег — только добавляем в общий список, без автовыбора.
       widget.onAddTag(name);
     }
+  }
+
+  void _createAndSelectTag(String name) {
+    widget.onAddTag(name);
+    setState(() => _tags.add(name));
+    unawaited(_saveNow());
   }
 
   Future<void> _manageTag(String tag) async {
@@ -211,7 +205,6 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
       return;
     }
 
-    // Тег меняется и в общем списке, и во всех прошлых днях.
     widget.onRenameTag(tag, name);
     setState(() {
       if (_tags.remove(tag)) _tags.add(name);
@@ -233,7 +226,6 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -251,7 +243,6 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
               SaveIndicator(status: _status),
             ],
           ),
-
           const SizedBox(height: 8),
           RatingRow(selected: _rating, onSelected: _selectRating),
           const SizedBox(height: 10),
@@ -259,13 +250,12 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
             availableTags: widget.availableTags,
             selectedTags: _tags,
             onToggle: _toggleTag,
-            onAdd: _addTag,
-            onManage: _manageTag,
+            onAddTag: _addTag,
+            onCreateAndSelectTag: _createAndSelectTag,
+            onManageTag: _manageTag,
           ),
           const SizedBox(height: 10),
-          // Индикатор сохранения справа от заголовка: строка всегда одной
-          // высоты, форма не «прыгает», когда индикатор появляется.
-          Row(children: [const Expanded(child: SectionTitle('Заметка'))]),
+          const SectionTitle('Заметка'),
           const SizedBox(height: 4),
           TextField(
             controller: _noteController,

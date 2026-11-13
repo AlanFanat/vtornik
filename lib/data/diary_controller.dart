@@ -1,17 +1,14 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
+import '../core/constants.dart';
 import 'app_storage.dart';
 import 'backup_data.dart';
 import 'day_entry.dart';
 
 /// Вся логика данных дневника: записи дней, общий список тегов, резервная копия.
-///
-/// Экраны только читают [entries] и [tags] и вызывают методы ниже.
-/// После любого изменения контроллер сам сохраняет данные и сообщает
-/// слушателям (через [ChangeNotifier]), что пора перерисоваться.
 class DiaryController extends ChangeNotifier {
   DiaryController(AppStorage storage)
     : _storage = storage,
@@ -31,8 +28,16 @@ class DiaryController extends ChangeNotifier {
 
   /// Только для чтения: менять записи можно лишь методами контроллера.
   Map<DateTime, DayEntry> get entries => UnmodifiableMapView(_entries);
-
   List<String> get tags => UnmodifiableListView(_tags);
+
+  /// Теги, отсортированные по частоте использования за последние
+  /// [tagSortWindowDays] дней (от частых к редким, при равенстве — по алфавиту).
+  List<String> get tagsSorted {
+    final counts = _countRecentTagUsage();
+    final sorted = [..._tags]
+      ..sort((a, b) => _compareTagsByUsage(a, b, counts));
+    return UnmodifiableListView(sorted);
+  }
 
   /// Растёт при восстановлении из копии, чтобы пересоздать редактор дня.
   int get revision => _revision;
@@ -41,6 +46,30 @@ class DiaryController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     super.dispose();
+  }
+
+  // ----- Частота и сортировка тегов -----
+
+  Map<String, int> _countRecentTagUsage() {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final cutoff = DateUtils.addDaysToDate(today, -(tagSortWindowDays - 1));
+    final counts = <String, int>{};
+
+    for (final entry in _entries.entries) {
+      final date = DateUtils.dateOnly(entry.key);
+      if (date.isBefore(cutoff) || date.isAfter(today)) continue;
+      for (final tag in entry.value.tags) {
+        counts[tag] = (counts[tag] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
+  int _compareTagsByUsage(String a, String b, Map<String, int> counts) {
+    final countDiff = (counts[b] ?? 0).compareTo(counts[a] ?? 0);
+    if (countDiff != 0) return countDiff;
+    final lowerDiff = a.toLowerCase().compareTo(b.toLowerCase());
+    return lowerDiff != 0 ? lowerDiff : a.compareTo(b);
   }
 
   // ----- Записи дней -----
@@ -54,8 +83,6 @@ class DiaryController extends ChangeNotifier {
       _entries[date] = entry;
     }
 
-    // Не уведомляем сразу: вызов может прийти из dispose редактора
-    // в момент смены дня, а в это время перерисовывать нельзя.
     Future.microtask(() {
       if (!_disposed) notifyListeners();
     });
@@ -66,6 +93,7 @@ class DiaryController extends ChangeNotifier {
   // ----- Теги -----
 
   void addTag(String tag) {
+    if (_tags.contains(tag)) return;
     _tags.add(tag);
     notifyListeners();
     unawaited(_storage.setTags(_tags));
@@ -76,7 +104,6 @@ class DiaryController extends ChangeNotifier {
     final index = _tags.indexOf(from);
     if (index >= 0) _tags[index] = to;
     _replaceTagInEntries(from, to);
-
     notifyListeners();
     _persistTagsAndEntries();
   }
@@ -85,7 +112,6 @@ class DiaryController extends ChangeNotifier {
   void deleteTag(String tag) {
     _tags.remove(tag);
     _replaceTagInEntries(tag, null);
-
     notifyListeners();
     _persistTagsAndEntries();
   }
@@ -95,12 +121,10 @@ class DiaryController extends ChangeNotifier {
     for (final date in _entries.keys.toList()) {
       final entry = _entries[date]!;
       if (!entry.tags.contains(from)) continue;
-
       final updated = entry.withTags({
         for (final tag in entry.tags)
           if (tag != from) tag else ?to,
       });
-
       if (updated.isEmpty) {
         _entries.remove(date);
       } else {
@@ -135,7 +159,6 @@ class DiaryController extends ChangeNotifier {
       ..clear()
       ..addAll(data.tags);
     _revision++;
-
     notifyListeners();
     _persistTagsAndEntries();
     return null;

@@ -168,12 +168,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ),
           const SizedBox(height: 6),
           DayEditor(
-            // Новый ключ на каждую дату -> редактор пересоздаётся
-            // и подхватывает сохранённую запись этого дня.
-            key: ValueKey(_selectedDate),
+            key: ValueKey('$_selectedDate#${_diary.revision}'),
             selectedDate: _selectedDate,
             entry: _diary.entries[_selectedDate],
-            availableTags: _diary.tags,
+            availableTags: _diary.tagsSorted,
             onAddTag: _diary.addTag,
             onRenameTag: _diary.renameTag,
             onDeleteTag: _diary.deleteTag,
