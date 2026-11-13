@@ -33,7 +33,7 @@ class TagsSection extends StatefulWidget {
 class _TagsSectionState extends State<TagsSection> {
   static const double _chipSpacing = 6;
   static const double _chipRunSpacing = 4;
-  static const double _chipHorizontalPadding = 22; // 11 слева + 11 справа
+  static const double _chipHorizontalPadding = 24; // 22 (11 слева + 11 справа) + 2 запас
   static const TextStyle _chipTextStyle = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w500,
@@ -102,6 +102,15 @@ class _TagsSectionState extends State<TagsSection> {
   }
 
   _TagsLayout _computeLayout(double maxWidth, TextScaler textScaler) {
+    if (maxWidth <= 0) {
+      return _TagsLayout(
+        visibleTags: _sessionOrder,
+        moreTags: const [],
+        showAddButton: false,
+        showMoreButton: false,
+      );
+    }
+
     final sessionSet = _sessionOrder.toSet();
     final allOrdered = [
       ..._sessionOrder,
@@ -112,18 +121,18 @@ class _TagsSectionState extends State<TagsSection> {
     double tagWidth(String tag) =>
         _measureTextWidth(tag, textScaler) + _chipHorizontalPadding;
 
-    // Ширина «+ Тег»: текст + отступы + иконка + зазор + рамка
-    final addWidth = _measureTextWidth('Тег', textScaler) + 42.0;
-    // Ширина «Ещё · N» с запасом под число
+    // Ширина кнопки «+ Тег» с запасом
+    final addWidth = _measureTextWidth('Тег', textScaler) + 44.0;
+    // Ширина кнопки «Ещё · N» с запасом под число и рамку
     final moreWidth =
-        _measureTextWidth('Ещё · ${allOrdered.length}', textScaler) + 26.0;
+        _measureTextWidth('Ещё · ${allOrdered.length}', textScaler) + 30.0;
 
     final allWithAddWidths = [
       for (final tag in allOrdered) tagWidth(tag),
       addWidth,
     ];
 
-    // 1. Всё помещается в ≤ 3 ряда -> показываем все теги и «+ Тег».
+    // 1. Все теги вместе с «+ Тег» помещаются в ≤ maxTagRows (3 ряда)
     if (_countRows(allWithAddWidths, maxWidth) <= maxTagRows) {
       return _TagsLayout(
         visibleTags: allOrdered,
@@ -133,7 +142,8 @@ class _TagsSectionState extends State<TagsSection> {
       );
     }
 
-    // 2. Переполнение -> подбираем базовые теги в 3 ряда вместе с «Ещё».
+    // 2. Переполнение: подбираем базовые теги так, чтобы ВМЕСТЕ С «Ещё»
+    // они строго укладывались в ≤ 3 ряда (кнопка «Ещё» изначально не вылезает на 4-й ряд).
     final baseVisible = <String>[];
     final currentWidths = <double>[];
 
@@ -152,8 +162,8 @@ class _TagsSectionState extends State<TagsSection> {
       }
     }
 
-    // Выбранные из «Ещё» или созданные теги добавляем в видимые,
-    // не убирая теги из baseVisible.
+    // Выбранные из «Ещё» или созданные теги дописываются к видимым,
+    // не убирая теги из baseVisible (при этом смещение «Ещё» на 4-й ряд позволяется).
     final baseSet = baseVisible.toSet();
     final extraSelected = [
       for (final tag in allOrdered)
@@ -167,6 +177,8 @@ class _TagsSectionState extends State<TagsSection> {
         if (!visibleSet.contains(tag)) tag,
     ];
 
+    // Кнопка «Ещё» остаётся доступной всегда при переполнении (даже если все
+    // существующие теги выбраны), чтобы пользователь мог открыть панель и создать новый тег.
     return _TagsLayout(
       visibleTags: visibleTags,
       moreTags: moreTags,
@@ -429,8 +441,11 @@ class _TagsSectionState extends State<TagsSection> {
                   for (final tag in filtered)
                     _TagChip(
                       label: tag,
-                      selected: false,
-                      onTap: () => widget.onToggle(tag, true),
+                      selected: widget.selectedTags.contains(tag),
+                      onTap: () => widget.onToggle(
+                        tag,
+                        !widget.selectedTags.contains(tag),
+                      ),
                       onLongPress: () => widget.onManageTag(tag),
                     ),
                   if (canCreate)
