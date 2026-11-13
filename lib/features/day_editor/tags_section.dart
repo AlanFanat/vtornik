@@ -78,21 +78,78 @@ class _TagsSectionState extends State<TagsSection> {
     return painter.width.ceilToDouble();
   }
 
-  int _countRows(List<double> widths, double maxWidth) {
-    if (widths.isEmpty || maxWidth <= 0) return 1;
-    var rows = 1;
-    var currentWidth = 0.0;
+  /// Упаковывает теги по строкам с заполнением пустот (Lookahead / Best-Fit).
+  List<List<String>> _packRows({
+    required List<String> tags,
+    required double maxWidth,
+    required double Function(String) tagWidth,
+    int? maxRows,
+    double reserveInLastRow = 0.0,
+  }) {
+    if (tags.isEmpty || maxWidth <= 0) return const [];
 
-    for (final width in widths) {
-      if (currentWidth == 0) {
-        currentWidth = width;
-      } else if (currentWidth + _chipSpacing + width <= maxWidth) {
-        currentWidth += _chipSpacing + width;
-      } else {
-        rows++;
-        currentWidth = width;
+    final rows = <List<String>>[];
+    final pool = [...tags];
+
+    while (pool.isNotEmpty) {
+      if (maxRows != null && rows.length >= maxRows) break;
+
+      final isLastRow = maxRows != null && rows.length == maxRows - 1;
+      final limit = isLastRow && reserveInLastRow > 0
+          ? maxWidth - reserveInLastRow
+          : maxWidth;
+
+      final currentRow = <String>[];
+      var currentWidth = 0.0;
+
+      while (pool.isNotEmpty) {
+        final first = pool.first;
+        final firstWidth = tagWidth(first);
+        final neededWidth = currentRow.isEmpty
+            ? firstWidth
+            : _chipSpacing + firstWidth;
+
+        if (currentWidth + neededWidth <= limit) {
+          currentRow.add(first);
+          currentWidth += neededWidth;
+          pool.removeAt(0);
+          continue;
+        }
+
+        // Lookahead / Best-Fit: ищем среди следующих тегов тот,
+        // который максимально заполнит оставшееся пустое место в этой строке
+        final availableSpace = limit - currentWidth;
+        var bestIndex = -1;
+        var bestWidth = 0.0;
+
+        for (var i = 1; i < pool.length; i++) {
+          final candidate = pool[i];
+          final candidateWidth = currentRow.isEmpty
+              ? tagWidth(candidate)
+              : _chipSpacing + tagWidth(candidate);
+
+          if (candidateWidth <= availableSpace && candidateWidth > bestWidth) {
+            bestWidth = candidateWidth;
+            bestIndex = i;
+          }
+        }
+
+        if (bestIndex != -1) {
+          final candidate = pool.removeAt(bestIndex);
+          currentRow.add(candidate);
+          currentWidth += bestWidth;
+        } else {
+          break;
+        }
       }
+
+      if (currentRow.isEmpty) {
+        currentRow.add(pool.removeAt(0));
+      }
+
+      rows.add(currentRow);
     }
+
     return rows;
   }
 
@@ -121,55 +178,16 @@ class _TagsSectionState extends State<TagsSection> {
     final moreWidth =
         _measureTextWidth('Ещё · ${allOrdered.length}', textScaler) + 30.0;
 
-    // 1. Все теги вместе с «+ Тег» помещаются в ≤ maxTagRows (3 ряда)
-    final allWithAddWidths = [
-      for (final tag in allOrdered) tagWidth(tag),
-      addWidth,
-    ];
-    if (_countRows(allWithAddWidths, maxWidth) <= maxTagRows) {
-      return _TagsLayout(
-        visibleTags: allOrdered,
-        moreCount: 0,
-        showAddButton: true,
-        showMoreButton: false,
-        showCollapseButton: false,
-      );
-    }
+    // 1. Упаковка базовых тегов по строкам с Lookahead
+    final baseRows = _packRows(
+      tags: _sessionOrder,
+      maxWidth: maxWidth,
+      tagWidth: tagWidth,
+      maxRows: maxTagRows,
+      reserveInLastRow: moreWidth + _chipSpacing,
+    );
 
-    // 2. Все теги сами по себе помещаются в ≤ maxTagRows
-    final allOnlyWidths = [
-      for (final tag in allOrdered) tagWidth(tag),
-    ];
-    if (_countRows(allOnlyWidths, maxWidth) <= maxTagRows) {
-      return _TagsLayout(
-        visibleTags: allOrdered,
-        moreCount: 0,
-        showAddButton: true,
-        showMoreButton: false,
-        showCollapseButton: false,
-      );
-    }
-
-    // 3. Переполнение: подбираем базовые теги так, чтобы ВМЕСТЕ С «Ещё»
-    // они строго укладывались в ≤ 3 ряда (кнопка «Ещё» изначально не вылезает на 4-й ряд).
-    final baseVisible = <String>[];
-    final currentWidths = <double>[];
-
-    for (var i = 0; i < _sessionOrder.length; i++) {
-      final remaining = _sessionOrder.length - (baseVisible.length + 1);
-      if (remaining <= 0) break;
-
-      final tag = _sessionOrder[i];
-      final w = tagWidth(tag);
-      final trial = [...currentWidths, w, moreWidth];
-      if (_countRows(trial, maxWidth) <= maxTagRows) {
-        baseVisible.add(tag);
-        currentWidths.add(w);
-      } else {
-        break;
-      }
-    }
-
+    final baseVisible = baseRows.expand((r) => r).toList();
     final baseSet = baseVisible.toSet();
     final tagsFromMore = [
       for (final tag in _sessionOrder)
@@ -181,12 +199,36 @@ class _TagsSectionState extends State<TagsSection> {
       (tag) => !widget.selectedTags.contains(tag),
     );
 
-    // Если блок уже раскрыт пользователем:
-    // Кнопка «Свернуть» видна только если есть что сворачивать (хотя бы один невыбранный тег).
-    // Если выбраны все теги из «Ещё» — «Свернуть» пропадает.
-    if (_isExpanded) {
+    // Если всё поместилось в 3 ряда без кнопки «Ещё»
+    if (tagsFromMore.isEmpty) {
+      final packedWithAdd = _packRows(
+        tags: allOrdered,
+        maxWidth: maxWidth,
+        tagWidth: tagWidth,
+        maxRows: maxTagRows,
+        reserveInLastRow: addWidth + _chipSpacing,
+      );
+      final allPacked = packedWithAdd.expand((r) => r).toList();
+
       return _TagsLayout(
-        visibleTags: allOrdered,
+        visibleTags: allPacked,
+        moreCount: 0,
+        showAddButton: true,
+        showMoreButton: false,
+        showCollapseButton: false,
+      );
+    }
+
+    // Если блок уже раскрыт пользователем:
+    // Пакуем ВСЕ теги с Lookahead, чтобы и в раскрытом виде не было дыр
+    if (_isExpanded) {
+      final expandedRows = _packRows(
+        tags: allOrdered,
+        maxWidth: maxWidth,
+        tagWidth: tagWidth,
+      );
+      return _TagsLayout(
+        visibleTags: expandedRows.expand((r) => r).toList(),
         moreCount: 0,
         showAddButton: true,
         showMoreButton: false,
@@ -194,7 +236,9 @@ class _TagsSectionState extends State<TagsSection> {
       );
     }
 
-    // Выбранные теги дописываются к видимым, не убирая базовые теги
+    // В свернутом виде при переполнении:
+    // Базовые теги (плотно уложенные в 3 ряда с резервом под «Ещё»)
+    // плюс выбранные из «Ещё» теги
     final extraSelected = [
       for (final tag in allOrdered)
         if (widget.selectedTags.contains(tag) && !baseSet.contains(tag)) tag,
