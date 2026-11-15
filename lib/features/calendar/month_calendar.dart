@@ -14,15 +14,15 @@ import 'day_cell.dart';
 /// «месяц» и «неделя» (жест по сетке отключён).
 ///
 /// Параметры:
-/// - [month]         — месяц, показываемый в заголовке карточки.
-/// - [isCollapsed]   — целевое состояние: true — неделя, false — месяц.
-/// - [selectedDate]  — выбранная дата (подсвечивается); неделя в
-///                     свёрнутом режиме — та, где лежит эта дата.
-/// - [entries]       — записи по датам (ключи — dateOnly).
-/// - [canGoNext]     — можно ли листать вперёд.
-/// - [onPrevious]    — листать назад (месяц или неделя).
-/// - [onNext]        — листать вперёд (месяц или неделя).
-/// - [onDateSelected]— выбор конкретного дня.
+/// - [month]          — месяц, показываемый в заголовке карточки.
+/// - [isCollapsed]    — целевое состояние: true — неделя, false — месяц.
+/// - [selectedDate]   — выбранная дата (подсвечивается); неделя в
+///                      свёрнутом режиме — та, где лежит эта дата.
+/// - [entries]        — записи по датам (ключи — dateOnly).
+/// - [canGoNext]      — можно ли листать вперёд.
+/// - [onPrevious]     — листать назад (месяц или неделя).
+/// - [onNext]         — листать вперёд (месяц или неделя).
+/// - [onDateSelected] — выбор конкретного дня.
 class MonthCalendar extends StatefulWidget {
   const MonthCalendar({
     super.key,
@@ -156,6 +156,7 @@ class _MonthCalendarState extends State<MonthCalendar>
     required DateTime selected,
   }) {
     final isSelectedRow = row == selectedRow;
+    final safeCellHeight = cellHeight.clamp(0.0, double.infinity);
 
     final rowWidget = Row(
       children: [
@@ -163,7 +164,7 @@ class _MonthCalendarState extends State<MonthCalendar>
           if (c > 0) const SizedBox(width: _spacing),
           Expanded(
             child: SizedBox(
-              height: cellHeight,
+              height: safeCellHeight,
               child: _buildCell(
                 date: DateUtils.addDaysToDate(gridStart, row * 7 + c),
                 inMonth:
@@ -203,155 +204,154 @@ class _MonthCalendarState extends State<MonthCalendar>
         ? ((startOffset + selected.day - 1) ~/ 7).clamp(0, rowCount - 1)
         : 0;
 
-    final buttonConstraints = BoxConstraints.tightFor(
+    const buttonConstraints = BoxConstraints.tightFor(
       width: 40,
       height: kMinInteractiveDimension,
     );
 
-    return // Сетка с поддержкой горизонтального свайпа
-    GestureDetector(
+    // Сетка с поддержкой горизонтального свайпа
+    return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onHorizontalDragEnd: _handleHorizontalSwipe,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: colors.card,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: colors.cardBorder),
-            ),
-            child: Column(
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: colors.card,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: colors.cardBorder),
+        ),
+        child: Column(
+          children: [
+            // Строка навигации: ‹ «Месяц Год» ›
+            Row(
               children: [
-                // Строка навигации: ‹ «Месяц Год» ›
-                Row(
-                  children: [
-                    IconButton(
-                      constraints: buttonConstraints,
-                      padding: EdgeInsets.zero,
-                      tooltip: 'Назад',
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed: widget.onPrevious,
+                IconButton(
+                  constraints: buttonConstraints,
+                  padding: EdgeInsets.zero,
+                  tooltip: 'Назад',
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: widget.onPrevious,
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      '${months[month.month - 1]} ${month.year}',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: colors.text,
+                      ),
                     ),
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          '${months[month.month - 1]} ${month.year}',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: colors.text,
-                          ),
+                  ),
+                ),
+                IconButton(
+                  constraints: buttonConstraints,
+                  padding: EdgeInsets.zero,
+                  tooltip: 'Вперёд',
+                  icon: const Icon(Icons.chevron_right),
+                  // null отключает кнопку, если листать вперёд нельзя.
+                  onPressed: widget.canGoNext ? widget.onNext : null,
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 4),
+
+            // Подписи дней недели.
+            Row(
+              children: [
+                for (final day in weekdaysShort)
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        day,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
                         ),
                       ),
                     ),
-                    IconButton(
-                      constraints: buttonConstraints,
-                      padding: EdgeInsets.zero,
-                      tooltip: 'Вперёд',
-                      icon: const Icon(Icons.chevron_right),
-                      // null отключает кнопку, если листать вперёд нельзя.
-                      onPressed: widget.canGoNext ? widget.onNext : null,
-                    ),
-                  ],
-                ),
+                  ),
+              ],
+            ),
 
-                const SizedBox(height: 4),
+            const SizedBox(height: 6),
 
-                // Подписи дней недели.
-                Row(
+            // Сетка. Жест отключён — анимация управляется только через
+            // изменение [isCollapsed] снаружи.
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final cellWidth = ((constraints.maxWidth - 6 * _spacing) / 7)
+                    .clamp(0.0, double.infinity);
+                final cellHeight =
+                    (cellWidth / _aspectRatio).clamp(0.0, double.infinity);
+                final rowStep = cellHeight + _spacing;
+                final fullHeight =
+                    (rowCount * cellHeight + (rowCount - 1) * _spacing)
+                        .clamp(0.0, double.infinity);
+
+                // Строки строятся один раз и не пересобираются на каждом
+                // кадре анимации: меняются только высота и сдвиг.
+                final rows = Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (final day in weekdaysShort)
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            day,
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 12,
+                    for (var r = 0; r < rowCount; r++) ...[
+                      if (r > 0) const SizedBox(height: _spacing),
+                      _buildRow(
+                        row: r,
+                        selectedRow: selectedRow,
+                        gridStart: gridStart,
+                        cellHeight: cellHeight,
+                        today: today,
+                        selected: selected,
+                      ),
+                    ],
+                  ],
+                );
+
+                // Высота «месяца» сама плавно меняется, когда в месяце
+                // 5 или 6 недель.
+                return TweenAnimationBuilder<double>(
+                  tween: Tween<double>(end: fullHeight),
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  child: rows,
+                  builder: (context, animatedFullHeight, child) {
+                    return AnimatedBuilder(
+                      animation: _controller,
+                      child: child,
+                      builder: (context, child) {
+                        final t = _controller.value;
+                        final height = (animatedFullHeight +
+                                (cellHeight - animatedFullHeight) * t)
+                            .clamp(0.0, double.infinity);
+
+                        return SizedBox(
+                          height: height,
+                          child: ClipRect(
+                            child: OverflowBox(
+                              alignment: Alignment.topCenter,
+                              minHeight: 0,
+                              maxHeight: double.infinity,
+                              child: Transform.translate(
+                                // Выбранная неделя «подъезжает» к верху.
+                                offset: Offset(
+                                  0,
+                                  -selectedRow * rowStep * t,
+                                ),
+                                child: child,
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                  ],
-                ),
-
-                const SizedBox(height: 6),
-
-                // Сетка. Жест отключён — анимация управляется только через
-                // изменение [isCollapsed] снаружи.
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final cellWidth = (constraints.maxWidth - 6 * _spacing) / 7;
-                    final cellHeight = cellWidth / _aspectRatio;
-                    final rowStep = cellHeight + _spacing;
-                    final fullHeight =
-                        rowCount * cellHeight + (rowCount - 1) * _spacing;
-
-                    // Строки строятся один раз и не пересобираются на каждом
-                    // кадре анимации: меняются только высота и сдвиг.
-                    final rows = Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (var r = 0; r < rowCount; r++) ...[
-                          if (r > 0) const SizedBox(height: _spacing),
-                          _buildRow(
-                            row: r,
-                            selectedRow: selectedRow,
-                            gridStart: gridStart,
-                            cellHeight: cellHeight,
-                            today: today,
-                            selected: selected,
-                          ),
-                        ],
-                      ],
-                    );
-
-                    // Высота «месяца» сама плавно меняется, когда в месяце
-                    // 5 или 6 недель.
-                    return TweenAnimationBuilder<double>(
-                      tween: Tween<double>(end: fullHeight),
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeInOut,
-                      child: rows,
-                      builder: (context, animatedFullHeight, child) {
-                        return AnimatedBuilder(
-                          animation: _controller,
-                          child: child,
-                          builder: (context, child) {
-                            final t = _controller.value;
-                            final height =
-                                animatedFullHeight +
-                                (cellHeight - animatedFullHeight) * t;
-
-                            return SizedBox(
-                              height: height,
-                              child: ClipRect(
-                                child: OverflowBox(
-                                  alignment: Alignment.topCenter,
-                                  minHeight: 0,
-                                  maxHeight: double.infinity,
-                                  child: Transform.translate(
-                                    // Выбранная неделя «подъезжает» к верху.
-                                    offset: Offset(
-                                      0,
-                                      -selectedRow * rowStep * t,
-                                    ),
-                                    child: child,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
                         );
                       },
                     );
                   },
-                ),
-              ],
+                );
+              },
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
