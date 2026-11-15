@@ -91,14 +91,13 @@ class _MonthCalendarState extends State<MonthCalendar>
     curve: const Interval(0.4, 1.0),
   );
 
-  /// Куда сейчас едет (или уже приехала) анимация.
-  late bool _goal = widget.isCollapsed;
-
   @override
   void didUpdateWidget(MonthCalendar oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Состояние поменяли снаружи (кнопка в заголовке, восстановление).
-    if (widget.isCollapsed != _goal) _settle(widget.isCollapsed);
+    if (widget.isCollapsed != oldWidget.isCollapsed) {
+      _settle(widget.isCollapsed);
+    }
   }
 
   @override
@@ -108,7 +107,6 @@ class _MonthCalendarState extends State<MonthCalendar>
   }
 
   void _settle(bool collapsed) {
-    _goal = collapsed;
     _controller.animateTo(collapsed ? 1.0 : 0.0, curve: Curves.easeOutCubic);
   }
 
@@ -283,12 +281,16 @@ class _MonthCalendarState extends State<MonthCalendar>
               builder: (context, constraints) {
                 final cellWidth = ((constraints.maxWidth - 6 * _spacing) / 7)
                     .clamp(0.0, double.infinity);
-                final cellHeight =
-                    (cellWidth / _aspectRatio).clamp(0.0, double.infinity);
+                final cellHeight = (cellWidth / _aspectRatio).clamp(
+                  0.0,
+                  double.infinity,
+                );
                 final rowStep = cellHeight + _spacing;
                 final fullHeight =
-                    (rowCount * cellHeight + (rowCount - 1) * _spacing)
-                        .clamp(0.0, double.infinity);
+                    (rowCount * cellHeight + (rowCount - 1) * _spacing).clamp(
+                      0.0,
+                      double.infinity,
+                    );
 
                 // Строки строятся один раз и не пересобираются на каждом
                 // кадре анимации: меняются только высота и сдвиг.
@@ -322,9 +324,10 @@ class _MonthCalendarState extends State<MonthCalendar>
                       child: child,
                       builder: (context, child) {
                         final t = _controller.value;
-                        final height = (animatedFullHeight +
-                                (cellHeight - animatedFullHeight) * t)
-                            .clamp(0.0, double.infinity);
+                        final height =
+                            (animatedFullHeight +
+                                    (cellHeight - animatedFullHeight) * t)
+                                .clamp(0.0, double.infinity);
 
                         return SizedBox(
                           height: height,
@@ -335,10 +338,7 @@ class _MonthCalendarState extends State<MonthCalendar>
                               maxHeight: double.infinity,
                               child: Transform.translate(
                                 // Выбранная неделя «подъезжает» к верху.
-                                offset: Offset(
-                                  0,
-                                  -selectedRow * rowStep * t,
-                                ),
+                                offset: Offset(0, -selectedRow * rowStep * t),
                                 child: child,
                               ),
                             ),
