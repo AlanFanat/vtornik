@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../core/colors.dart';
 import '../../core/constants.dart';
@@ -31,17 +33,35 @@ class DayEditor extends StatefulWidget {
   final ValueChanged<String> onAddTag;
   final void Function(String from, String to) onRenameTag;
   final ValueChanged<String> onDeleteTag;
-
-  /// Вызывается при каждом изменении дня. Возвращает true,
-  /// если запись удалось сохранить на устройство.
   final Future<bool> Function(DateTime date, DayEntry entry) onChanged;
 
   @override
   State<DayEditor> createState() => _DayEditorState();
 }
 
-class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
+class _DayEditorState extends State<DayEditor>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   bool _isEditing = false;
+
+  /// 0.0 — компактная карточка (DayCard), 1.0 — форма редактирования.
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 280),
+    value: 0.0,
+  );
+
+  late final Animation<double> _cardOpacity =
+      Tween<double>(begin: 1.0, end: 0.0).animate(
+    CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.55)),
+  );
+
+  late final Animation<double> _formOpacity = CurvedAnimation(
+    parent: _controller,
+    curve: const Interval(0.45, 1.0),
+  );
+
+  double? _cardHeight;
+  double? _formHeight;
 
   late int? _rating = widget.entry?.rating;
   late final Set<String> _tags = {...?widget.entry?.tags};
@@ -55,7 +75,6 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
   void _setSaveStatus(bool saved) {
     _saveTimer?.cancel();
     final status = saved ? SaveStatus.saved : SaveStatus.failed;
-
     setState(() => _status = status);
 
     _saveTimer = Timer(const Duration(seconds: 2), () {
@@ -73,6 +92,7 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _saveTimer?.cancel();
+    _controller.dispose();
 
     if (_noteTimer?.isActive ?? false) {
       _noteTimer!.cancel();
@@ -100,7 +120,10 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
       }
       _saveTimer?.cancel();
       _status = SaveStatus.idle;
-      _isEditing = false; // При смене даты снова показываем компактную карточку
+      _isEditing = false;
+      _controller.value = 0.0; // Мгновенный сброс при смене дня
+      _cardHeight = null;
+      _formHeight = null;
       _rating = widget.entry?.rating;
       _tags
         ..clear()
@@ -110,23 +133,26 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
   }
 
   DayEntry get _currentEntry => DayEntry(
-    rating: _rating,
-    tags: {..._tags},
-    note: _noteController.text.trim(),
-  );
+        rating: _rating,
+        tags: {..._tags},
+        note: _noteController.text.trim(),
+      );
 
   void _openEditor() {
+    if (_isEditing) return;
     setState(() => _isEditing = true);
+    _controller.animateTo(1.0, curve: Curves.easeOutCubic);
   }
 
   Future<void> _closeEditor() async {
+    if (!_isEditing) return;
     FocusScope.of(context).unfocus();
     if (_noteTimer?.isActive ?? false) {
       await _saveNow();
     }
-    if (mounted) {
-      setState(() => _isEditing = false);
-    }
+    if (!mounted) return;
+    setState(() => _isEditing = false);
+    unawaited(_controller.animateTo(0.0, curve: Curves.easeOutCubic));
   }
 
   void _showMessage(String text) {
@@ -234,24 +260,84 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
     unawaited(_saveNow());
   }
 
-  // ----- Экран -----
+  // ----- Построение -----
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 240),
-      curve: Curves.easeOutCubic,
-      alignment: Alignment.topCenter,
-      child: _isEditing
-          ? _buildForm(context)
-          : DayCard(
-              date: widget.selectedDate,
-              entry: _currentEntry,
-              maxNoteLines: null, // Показываем весь текст заметки без обрезки
-              showEditHint:
-                  true, // Показываем подсказку «Нажмите, чтобы изменить»
-              onTap: _openEditor,
+    // Оба слоя собираются заранее и не пересоздаются на каждом тике анимации.
+    final cardLayer = _MeasureSize(
+      onChange: (size) {
+        if (_cardHeight != size.height) {
+          setState(() => _cardHeight = size.height);
+        }
+      },
+      child: DayCard(
+        date: widget.selectedDate,
+        entry: _currentEntry,
+        maxNoteLines: null,
+        showEditHint: true,
+        onTap: _openEditor,
+      ),
+    );
+
+    final formLayer = _MeasureSize(
+      onChange: (size) {
+        if (_formHeight != size.height) {
+          setState(() => _formHeight = size.height);
+        }
+      },
+      child: _buildForm(context),
+    );
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final t = _controller.value;
+
+        // Пока высоты не измерены на первом кадре, показываем активный виджет
+        // без жёсткого ограничения высоты.
+        final startH = _cardHeight ?? _formHeight;
+        final endH = _formHeight ?? _cardHeight;
+        final currentHeight = (startH != null && endH != null)
+            ? lerpDouble(startH, endH, t)!.clamp(0.0, double.infinity)
+            : null;
+
+        final stack = Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            if (t < 1.0)
+              IgnorePointer(
+                ignoring: t > 0.5,
+                child: FadeTransition(
+                  opacity: _cardOpacity,
+                  child: cardLayer,
+                ),
+              ),
+            if (t > 0.0)
+              IgnorePointer(
+                ignoring: t < 0.5,
+                child: FadeTransition(
+                  opacity: _formOpacity,
+                  child: formLayer,
+                ),
+              ),
+          ],
+        );
+
+        if (currentHeight == null) return stack;
+
+        return SizedBox(
+          height: currentHeight,
+          child: ClipRect(
+            child: OverflowBox(
+              alignment: Alignment.topCenter,
+              minHeight: 0,
+              maxHeight: double.infinity,
+              child: stack,
             ),
+          ),
+        );
+      },
     );
   }
 
@@ -265,6 +351,7 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
         border: Border.all(color: colors.cardBorder),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
@@ -279,9 +366,13 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
                   children: [
                     SaveIndicator(status: _status),
                     const SizedBox(width: 6),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: _closeEditor,
+                    // Стрелка синхронизирована с прогрессом раскрытия
+                    AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, child) => Transform.rotate(
+                        angle: (1.0 - _controller.value) * 3.14159265,
+                        child: child,
+                      ),
                       child: Icon(
                         Icons.keyboard_arrow_up,
                         size: 25,
@@ -326,5 +417,42 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
         ],
       ),
     );
+  }
+}
+
+/// Отслеживает реальную высоту дочернего виджета после layout-фазы,
+/// чтобы интерполировать высоту контейнера без искажения вёрстки.
+class _MeasureSize extends SingleChildRenderObjectWidget {
+  const _MeasureSize({required this.onChange, required super.child});
+
+  final ValueChanged<Size> onChange;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _MeasureSizeRenderObject(onChange);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant _MeasureSizeRenderObject renderObject,
+  ) {
+    renderObject.onChange = onChange;
+  }
+}
+
+class _MeasureSizeRenderObject extends RenderProxyBox {
+  _MeasureSizeRenderObject(this.onChange);
+
+  ValueChanged<Size> onChange;
+  Size? _oldSize;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final newSize = child?.size;
+    if (newSize != null && _oldSize != newSize) {
+      _oldSize = newSize;
+      WidgetsBinding.instance.addPostFrameCallback((_) => onChange(newSize));
+    }
   }
 }
