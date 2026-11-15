@@ -7,6 +7,7 @@ import '../../core/constants.dart';
 import '../../data/day_entry.dart';
 import '../../widgets/day_title.dart';
 import '../../widgets/section_title.dart';
+import '../stats/day_card.dart';
 import 'rating_row.dart';
 import 'save_indicator.dart';
 import 'tag_dialogs.dart';
@@ -40,6 +41,8 @@ class DayEditor extends StatefulWidget {
 }
 
 class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
+  bool _isEditing = false;
+
   late int? _rating = widget.entry?.rating;
   late final Set<String> _tags = {...?widget.entry?.tags};
   late final TextEditingController _noteController = TextEditingController(
@@ -71,7 +74,6 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _saveTimer?.cancel();
 
-    // Заметку не успели сохранить (сменили день за доли секунды) — сохраняем сейчас.
     if (_noteTimer?.isActive ?? false) {
       _noteTimer!.cancel();
       unawaited(widget.onChanged(widget.selectedDate, _currentEntry));
@@ -80,7 +82,6 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Если приложение уходит в фон, не ждём таймер.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
@@ -92,7 +93,6 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
   @override
   void didUpdateWidget(covariant DayEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Если переключили дату, сохраняем старый черновик и загружаем новый день
     if (oldWidget.selectedDate != widget.selectedDate) {
       if (_noteTimer?.isActive ?? false) {
         _noteTimer!.cancel();
@@ -100,6 +100,7 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
       }
       _saveTimer?.cancel();
       _status = SaveStatus.idle;
+      _isEditing = false; // При смене даты снова показываем компактную карточку
       _rating = widget.entry?.rating;
       _tags
         ..clear()
@@ -113,6 +114,20 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
     tags: {..._tags},
     note: _noteController.text.trim(),
   );
+
+  void _openEditor() {
+    setState(() => _isEditing = true);
+  }
+
+  Future<void> _closeEditor() async {
+    FocusScope.of(context).unfocus();
+    if (_noteTimer?.isActive ?? false) {
+      await _saveNow();
+    }
+    if (mounted) {
+      setState(() => _isEditing = false);
+    }
+  }
 
   void _showMessage(String text) {
     ScaffoldMessenger.of(context)
@@ -129,7 +144,6 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
     _setSaveStatus(saved);
   }
 
-  /// Заметку сохраняем не на каждую букву, а когда пользователь на миг замолчал.
   void _scheduleSave() {
     _noteTimer?.cancel();
     _noteTimer = Timer(noteSaveDelay, _saveNow);
@@ -137,7 +151,6 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
 
   // ----- Оценка -----
 
-  /// Повторное нажатие на выбранную оценку снимает её.
   void _selectRating(int rating) {
     setState(() => _rating = _rating == rating ? null : rating);
     unawaited(_saveNow());
@@ -225,6 +238,24 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
+      child: _isEditing
+          ? _buildForm(context)
+          : DayCard(
+              date: widget.selectedDate,
+              entry: _currentEntry,
+              maxNoteLines: null, // Показываем весь текст заметки без обрезки
+              showEditHint:
+                  true, // Показываем подсказку «Нажмите, чтобы изменить»
+              onTap: _openEditor,
+            ),
+    );
+  }
+
+  Widget _buildForm(BuildContext context) {
     final colors = context.colors;
     return Container(
       padding: const EdgeInsets.all(10),
@@ -236,12 +267,31 @@ class _DayEditorState extends State<DayEditor> with WidgetsBindingObserver {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: DayTitle(date: widget.selectedDate)),
-              SaveIndicator(status: _status),
-            ],
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: _closeEditor,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: DayTitle(date: widget.selectedDate)),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SaveIndicator(status: _status),
+                    const SizedBox(width: 6),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: _closeEditor,
+                      child: Icon(
+                        Icons.keyboard_arrow_up,
+                        size: 25,
+                        color: colors.text.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 8),
           RatingRow(selected: _rating, onSelected: _selectRating),

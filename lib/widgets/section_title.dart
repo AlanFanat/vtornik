@@ -3,16 +3,18 @@ import 'package:flutter/material.dart';
 import '../core/colors.dart';
 
 class SectionTitle extends StatelessWidget {
-  const SectionTitle(this.text, {super.key});
+  const SectionTitle(this.text, {super.key, this.fontSize = 16});
 
   final String text;
+
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
     return Text(
       text,
       style: TextStyle(
-        fontSize: 16,
+        fontSize: fontSize,
         fontWeight: FontWeight.w600,
         color: context.colors.text,
       ),

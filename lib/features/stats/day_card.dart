@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:vtornik/widgets/day_title.dart';
 
 import '../../core/colors.dart';
-import '../../core/date_format.dart';
 import '../../data/day_entry.dart';
 
 /// Карточка одного дня: дата, оценка, заметка и теги.
@@ -11,12 +11,19 @@ class DayCard extends StatelessWidget {
     required this.date,
     required this.entry,
     required this.onTap,
+    this.maxNoteLines = 3,
+    this.showEditHint = false,
   });
 
   final DateTime date;
   final DayEntry entry;
-
   final VoidCallback? onTap;
+
+  /// Максимум строк заметки (в ленте — 3, в календаре — null, чтобы показать целиком).
+  final int? maxNoteLines;
+
+  /// Показывать ли подсказку о том, что карточку можно нажать для редактирования.
+  final bool showEditHint;
 
   @override
   Widget build(BuildContext context) {
@@ -47,26 +54,64 @@ class DayCard extends StatelessWidget {
               Container(width: 6, color: accent),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _Header(date: date, rating: rating, color: accent),
+
+                      // Если день совсем пустой, а подсказка включена — показываем призыв
+                      if (entry.isEmpty && showEditHint) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          'Нажмите, чтобы оценить день или написать заметку',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+
                       if (note.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         Text(
                           note,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
+                          maxLines: maxNoteLines,
+                          overflow: maxNoteLines != null
+                              ? TextOverflow.ellipsis
+                              : null,
                           style: const TextStyle(fontSize: 14, height: 1.35),
                         ),
                       ],
+
                       if (tags.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 5,
                           runSpacing: 4,
                           children: [for (final tag in tags) _TagLabel(tag)],
+                        ),
+                      ],
+
+                      // Для заполненного дня в календаре — ненавязчивая строка-подсказка внизу
+                      if (!entry.isEmpty && showEditHint) ...[
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.edit_outlined,
+                              size: 13,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Нажмите, чтобы изменить',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ],
@@ -96,28 +141,12 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final scheme = Theme.of(context).colorScheme;
     final rating = this.rating;
 
     return Row(
       children: [
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                formatDate(date),
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                weekdayName(date),
-                style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
-              ),
-            ],
-          ),
+          child: DayTitle(date: date)
         ),
         Container(
           width: 46,

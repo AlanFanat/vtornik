@@ -47,3 +47,4 @@ app.*.map.json
 
 # Local screenshots
 /screenshots/
+calendar_context.md
