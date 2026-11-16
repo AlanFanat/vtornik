@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-
 import '../../core/colors.dart';
 import '../../data/day_entry.dart';
 import '../../widgets/section_title.dart';
 import 'day_card.dart';
+import 'feed_filter.dart';
 import 'period_math.dart';
 import 'period_selector.dart';
 import 'period_summary_card.dart';
+import 'stats_feed_controls.dart';
 import 'stats_tags.dart';
 import 'stats_weekdays.dart';
 
@@ -14,10 +15,12 @@ class StatsPage extends StatefulWidget {
   const StatsPage({
     super.key,
     required this.entries,
+    required this.availableTags,
     required this.onDaySelected,
   });
 
   final Map<DateTime, DayEntry> entries;
+  final List<String> availableTags;
   final ValueChanged<DateTime> onDaySelected;
 
   @override
@@ -26,20 +29,17 @@ class StatsPage extends StatefulWidget {
 
 class _StatsPageState extends State<StatsPage> {
   StatsPeriod _period = StatsPeriod.allTime;
-
-  /// На сколько периодов (недель или месяцев) назад от текущего. 0 — текущий.
-  /// Хранится именно число, а не дата: «текущий» сам пересчитывается от
-  /// сегодняшней даты, даже если приложение пролежало всю ночь.
   int _pagesBack = 0;
-
-  /// Куда листали в последний раз: от этого зависит сторона анимации.
   int _direction = 1;
+
+  bool _isFeedMode = false;
+  FeedFilterState _feedFilter = const FeedFilterState();
 
   void _changePeriod(StatsPeriod period) {
     setState(() {
       _period = period;
       _pagesBack = 0;
-      _direction = 0; // было 1: смена типа периода — фейд, а не листание
+      _direction = 0;
     });
   }
 
@@ -60,152 +60,258 @@ class _StatsPageState extends State<StatsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final today = DateUtils.dateOnly(DateTime.now());
-
     final range = statsRange(_period, today, _pagesBack);
     final filtered = filterEntriesByRange(widget.entries, range);
     final bounds = entriesDateBounds(widget.entries);
+    final days = filtered.values.toList();
 
-    // Новые дни сверху.
+    final label = range != null
+        ? periodLabel(_period, range)
+        : allTimeLabel(bounds);
+    final caption = _period == StatsPeriod.allTime
+        ? 'Всё время'
+        : periodCaption(_period, _pagesBack);
+    final canGoPrevious =
+        range != null && bounds != null && range.start.isAfter(bounds.start);
+    final canGoNext = _pagesBack > 0;
+
+    // Список для обычного режима статистики
     final sortedEntries = filtered.entries.toList()
       ..sort((a, b) => b.key.compareTo(a.key));
+
+    // Список для режима ленты с фильтрами
+    final feedItems = _isFeedMode
+        ? filterFeedEntries(widget.entries, range, _feedFilter)
+        : const <MapEntry<DateTime, DayEntry>>[];
+
+    final allUsedTags = {
+      for (final entry in widget.entries.values) ...entry.tags,
+    };
 
     return CustomScrollView(
       slivers: [
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
           sliver: SliverToBoxAdapter(
-            child: _StatsHeader(
-              period: _period,
-              pagesBack: _pagesBack,
-              direction: _direction,
-              range: range,
-              bounds: bounds,
-              filtered: filtered,
-              onPeriodChanged: _changePeriod,
-              onPrevious: _goBack,
-              onNext: _goForward,
-              onReset: _goToCurrent,
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SectionTitle('Дни за период'),
-                const SizedBox(width: 8),
-                Text(
-                  '${sortedEntries.length}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: context.colors.disabledText,
-                  ),
+                // Шапка с переключателем "Лента / Статистика"
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    PageTitle(_isFeedMode ? 'Лента' : 'Статистика'),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: () => setState(() => _isFeedMode = !_isFeedMode),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _isFeedMode
+                              ? accentColor.withValues(alpha: 0.14)
+                              : colors.card,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: _isFeedMode
+                                ? accentColor
+                                : colors.cardBorder,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _isFeedMode
+                                  ? Icons.bar_chart
+                                  : Icons.view_agenda_outlined,
+                              size: 16,
+                              color: _isFeedMode ? accentColor : colors.text,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _isFeedMode ? 'Статистика' : 'Лента',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: _isFeedMode ? accentColor : colors.text,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 6),
+
+                // Селектор периода и карточка периода остаются сверху всегда
+                PeriodSelector(selected: _period, onChanged: _changePeriod),
+                const SizedBox(height: 6),
+                PeriodSummaryCard(
+                  label: label,
+                  caption: caption,
+                  direction: _direction,
+                  canGoPrevious: canGoPrevious,
+                  canGoNext: canGoNext,
+                  onPrevious: _goBack,
+                  onNext: _goForward,
+                  onReset: _goToCurrent,
+                  days: days,
+                ),
+                const SizedBox(height: 6),
+
+                if (_isFeedMode)
+                  StatsFeedControls(
+                    availableTags: widget.availableTags,
+                    allUsedTags: allUsedTags,
+                    filter: _feedFilter,
+                    filteredCount: feedItems.length,
+                    periodBaseCount: filtered.length,
+                    onFilterChanged: (next) =>
+                        setState(() => _feedFilter = next),
+                  )
+                else ...[
+                  StatsWeekdays(entries: filtered),
+                  const SizedBox(height: 6),
+                  StatsTags(days: days),
+                  const SizedBox(height: 8),
+                ],
               ],
             ),
           ),
         ),
-        if (sortedEntries.isEmpty)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Center(
-                child: Text(
-                  'Нет записей за этот период',
-                  style: TextStyle(
-                    color: context.colors.disabledText,
-                    fontSize: 14,
+
+        if (_isFeedMode) ...[
+          if (feedItems.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 4, 10, 16),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: colors.card,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: colors.cardBorder),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        _feedFilter.hasAnyFilter
+                            ? 'Ничего не найдено'
+                            : 'Нет записей за этот период',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: colors.text,
+                        ),
+                      ),
+                      if (_feedFilter.hasAnyFilter) ...[
+                        const SizedBox(height: 8),
+                        FilledButton(
+                          onPressed: () => setState(
+                            () => _feedFilter = const FeedFilterState(),
+                          ),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: accentColor,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Сбросить фильтры'),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+              sliver: SliverList.separated(
+                itemCount: feedItems.length,
+                itemBuilder: (context, index) {
+                  final item = feedItems[index];
+                  return DayCard(
+                    date: item.key,
+                    entry: item.value,
+                    maxNoteLines: 4,
+                    highlightQuery: _feedFilter.query,
+                    onTap: () => widget.onDaySelected(item.key),
+                  );
+                },
+                separatorBuilder: (context, index) => const SizedBox(height: 4),
+              ),
             ),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-            sliver: SliverList.separated(
-              itemCount: sortedEntries.length,
-              itemBuilder: (context, index) {
-                final item = sortedEntries[index];
-                return DayCard(
-                  date: item.key,
-                  entry: item.value,
-                  onTap: () => widget.onDaySelected(item.key),
-                );
-              },
-              separatorBuilder: (context, index) => const SizedBox(height: 4),
+        ] else ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const SectionTitle('Дни за период'),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${sortedEntries.length}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: colors.disabledText,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (sortedEntries.isNotEmpty)
+                    GestureDetector(
+                      onTap: () => setState(() => _isFeedMode = true),
+                      child: const Text(
+                        'Поиск и фильтры',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: accentColor,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
-      ],
-    );
-  }
-}
-
-/// Шапка экрана статистики: заголовок, выбор периода, навигатор и блоки графиков.
-class _StatsHeader extends StatelessWidget {
-  const _StatsHeader({
-    required this.period,
-    required this.pagesBack,
-    required this.direction,
-    required this.range,
-    required this.bounds,
-    required this.filtered,
-    required this.onPeriodChanged,
-    required this.onPrevious,
-    required this.onNext,
-    required this.onReset,
-  });
-
-  final StatsPeriod period;
-  final int pagesBack;
-  final int direction;
-  final DateTimeRange? range;
-  final DateTimeRange? bounds;
-  final Map<DateTime, DayEntry> filtered;
-  final ValueChanged<StatsPeriod> onPeriodChanged;
-  final VoidCallback onPrevious;
-  final VoidCallback onNext;
-  final VoidCallback onReset;
-
-  @override
-  Widget build(BuildContext context) {
-    final days = filtered.values.toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const PageTitle('Статистика'),
-        const SizedBox(height: 6),
-        PeriodSelector(selected: period, onChanged: onPeriodChanged),
-        const SizedBox(height: 6),
-
-        PeriodSummaryCard(
-          label: range != null
-              ? periodLabel(period, range!)
-              : allTimeLabel(bounds),
-          caption: range != null
-              ? periodCaption(period, pagesBack)
-              : 'Всё время',
-          direction: direction,
-          canGoPrevious:
-              range != null &&
-              bounds != null &&
-              range!.start.isAfter(bounds!.start),
-          canGoNext: pagesBack > 0,
-          onPrevious: onPrevious,
-          onNext: onNext,
-          onReset: onReset,
-          days: days,
-        ),
-
-        const SizedBox(height: 6),
-        StatsWeekdays(entries: filtered),
-        const SizedBox(height: 6),
-        StatsTags(days: days),
-        const SizedBox(height: 8),
+          if (sortedEntries.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Center(
+                  child: Text(
+                    'Нет записей за этот период',
+                    style: TextStyle(color: colors.disabledText, fontSize: 14),
+                  ),
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+              sliver: SliverList.separated(
+                itemCount: sortedEntries.length,
+                itemBuilder: (context, index) {
+                  final item = sortedEntries[index];
+                  return DayCard(
+                    date: item.key,
+                    entry: item.value,
+                    onTap: () => widget.onDaySelected(item.key),
+                  );
+                },
+                separatorBuilder: (context, index) => const SizedBox(height: 4),
+              ),
+            ),
+        ],
       ],
     );
   }

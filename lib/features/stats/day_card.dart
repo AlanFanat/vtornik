@@ -13,6 +13,7 @@ class DayCard extends StatelessWidget {
     required this.onTap,
     this.maxNoteLines = 3,
     this.showEditHint = false,
+    this.highlightQuery,
   });
 
   final DateTime date;
@@ -24,6 +25,53 @@ class DayCard extends StatelessWidget {
 
   /// Показывать ли подсказку о том, что карточку можно нажать для редактирования.
   final bool showEditHint;
+
+  final String? highlightQuery;
+
+  Widget _buildNote(String note) {
+    final query = highlightQuery?.trim() ?? '';
+    const baseStyle = TextStyle(fontSize: 14, height: 1.35);
+
+    if (query.isEmpty) {
+      return Text(
+        note,
+        maxLines: maxNoteLines,
+        overflow: maxNoteLines != null ? TextOverflow.ellipsis : null,
+        style: baseStyle,
+      );
+    }
+
+    final lowerNote = note.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    final spans = <TextSpan>[];
+    var cursor = 0;
+    var matchIndex = lowerNote.indexOf(lowerQuery, cursor);
+
+    while (matchIndex != -1) {
+      if (matchIndex > cursor) {
+        spans.add(TextSpan(text: note.substring(cursor, matchIndex)));
+      }
+      final end = matchIndex + query.length;
+      spans.add(
+        TextSpan(
+          text: note.substring(matchIndex, end),
+          style: TextStyle(backgroundColor: accentColor.withValues(alpha: 0.2)),
+        ),
+      );
+      cursor = end;
+      matchIndex = lowerNote.indexOf(lowerQuery, cursor);
+    }
+
+    if (cursor < note.length) {
+      spans.add(TextSpan(text: note.substring(cursor)));
+    }
+
+    return Text.rich(
+      TextSpan(style: baseStyle, children: spans),
+      maxLines: maxNoteLines,
+      overflow: maxNoteLines != null ? TextOverflow.ellipsis : null,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,14 +122,7 @@ class DayCard extends StatelessWidget {
 
                       if (note.isNotEmpty) ...[
                         const SizedBox(height: 10),
-                        Text(
-                          note,
-                          maxLines: maxNoteLines,
-                          overflow: maxNoteLines != null
-                              ? TextOverflow.ellipsis
-                              : null,
-                          style: const TextStyle(fontSize: 14, height: 1.35),
-                        ),
+                        _buildNote(note)
                       ],
 
                       if (tags.isNotEmpty) ...[

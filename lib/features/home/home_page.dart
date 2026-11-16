@@ -209,7 +209,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               index: _navIndex,
               children: [
                 _buildCalendarTab(),
-                StatsPage(entries: _diary.entries, onDaySelected: openDay),
+                StatsPage(
+                  entries: _diary.entries,
+                  availableTags: _diary.tagsSorted,
+                  onDaySelected: openDay,
+                ),
                 SettingsPage(
                   isDarkTheme: widget.isDarkTheme,
                   onDarkThemeChanged: widget.onDarkThemeChanged,
