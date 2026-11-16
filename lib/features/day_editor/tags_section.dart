@@ -97,7 +97,7 @@ class _TagsSectionState extends State<TagsSection> {
   void _ensurePanelVisible({int delayMs = 280}) {
     Future.delayed(Duration(milliseconds: delayMs), () {
       final panelContext = _panelKey.currentContext;
-      if (!mounted || panelContext == null) return;
+      if (panelContext == null || !panelContext.mounted) return;
 
       Scrollable.ensureVisible(
         panelContext,
