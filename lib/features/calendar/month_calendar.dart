@@ -51,8 +51,17 @@ class MonthCalendar extends StatefulWidget {
 
 class _MonthCalendarState extends State<MonthCalendar>
     with SingleTickerProviderStateMixin {
-  static const _spacing = 6.0;
-  static const _aspectRatio = 1.4;
+  static const double _spacing = 6.0;
+  static const double _aspectRatio = 1.4;
+
+  /// Единая длительность всех анимаций карточки.
+  static const _animationDuration = Duration(milliseconds: 280);
+
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: _animationDuration,
+    value: widget.isCollapsed ? 1.0 : 0.0,
+  );
 
   // Минимальная скорость смахивания (пикселей в секунду), чтобы жест
   // не срабатывал от случайного дрожания пальца при нажатии на день.
@@ -71,13 +80,6 @@ class _MonthCalendarState extends State<MonthCalendar>
       }
     }
   }
-
-  /// 0 — показан весь месяц, 1 — одна неделя.
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 280),
-    value: widget.isCollapsed ? 1.0 : 0.0,
-  );
 
   /// Остальные недели гаснут в первой части сворачивания.
   late final Animation<double> _otherRowsOpacity =
@@ -138,10 +140,11 @@ class _MonthCalendarState extends State<MonthCalendar>
 
     return AnimatedBuilder(
       animation: _controller,
-      child: FadeTransition(opacity: _edgeCellsOpacity, child: cell),
-      // Пока ячейки не видны, они не должны ловить нажатия.
-      builder: (context, child) =>
-          IgnorePointer(ignoring: _controller.value < 0.5, child: child),
+      builder: (context, _) => IgnorePointer(
+        // Пока ячейки не видны, они не должны ловить нажатия.
+        ignoring: _controller.value < 0.5,
+        child: FadeTransition(opacity: _edgeCellsOpacity, child: cell),
+      ),
     );
   }
 
@@ -315,7 +318,7 @@ class _MonthCalendarState extends State<MonthCalendar>
                 // 5 или 6 недель.
                 return TweenAnimationBuilder<double>(
                   tween: Tween<double>(end: fullHeight),
-                  duration: const Duration(milliseconds: 250),
+                  duration: _animationDuration, // было 250 — теперь синхронно
                   curve: Curves.easeInOut,
                   child: rows,
                   builder: (context, animatedFullHeight, child) {

@@ -587,8 +587,7 @@ class _TagPill extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+      child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
           color: bg,
@@ -619,8 +618,7 @@ class _ActionPill extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+      child: Container(
         padding: EdgeInsets.symmetric(
           horizontal: icon != null ? 10 : 12,
           vertical: 4,
