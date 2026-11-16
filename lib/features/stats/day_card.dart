@@ -92,28 +92,6 @@ class DayCard extends StatelessWidget {
                           children: [for (final tag in tags) _TagLabel(tag)],
                         ),
                       ],
-
-                      // Для заполненного дня в календаре — ненавязчивая строка-подсказка внизу
-                      if (!entry.isEmpty && showEditHint) ...[
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.edit_outlined,
-                              size: 13,
-                              color: scheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Нажмите, чтобы изменить',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: scheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -145,9 +123,7 @@ class _Header extends StatelessWidget {
 
     return Row(
       children: [
-        Expanded(
-          child: DayTitle(date: date)
-        ),
+        Expanded(child: DayTitle(date: date)),
         Container(
           width: 46,
           height: 46,
