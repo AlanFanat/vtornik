@@ -4,7 +4,11 @@ import '../../core/colors.dart';
 
 /// Ровно одна строка из 10 плиток оценки при любой ширине экрана.
 class RatingRow extends StatelessWidget {
-  const RatingRow({super.key, required this.selected, required this.onSelected});
+  const RatingRow({
+    super.key,
+    required this.selected,
+    required this.onSelected,
+  });
 
   final int? selected;
   final ValueChanged<int> onSelected;
@@ -46,36 +50,33 @@ class _RatingTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
     );
 
+    final alpha = isSelected ? 1.0 : 0.5;
+
     return Semantics(
       button: true,
       selected: isSelected,
       excludeSemantics: true,
       label: 'Оценка $rating из 10',
-      child: AnimatedScale(
+      child: Transform.scale(
         scale: isSelected ? 1.10 : 1.0, // Увеличение при выборе
         alignment: Alignment.bottomCenter,
-        duration: const Duration(milliseconds: 0),
-        curve: Curves.easeOut,
-        child: Opacity(
-          opacity: isSelected ? 1.0 : 0.5,
-          child: Material(
-            animationDuration: Duration.zero,
-            color: ratingColor(rating),
-            shape: shape,
-            child: InkWell(
-              customBorder: shape,
-              onTap: onTap,
-              splashFactory: NoSplash.splashFactory,
-              overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-              child: SizedBox(
-                height: 40,
-                child: Center(
-                  child: Text(
-                    '$rating',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: colors.onRatingColor,
-                    ),
+        child: Material(
+          animationDuration: Duration.zero,
+          color: ratingColor(rating).withValues(alpha: alpha),
+          shape: shape,
+          child: InkWell(
+            customBorder: shape,
+            onTap: onTap,
+            splashFactory: NoSplash.splashFactory,
+            overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+            child: SizedBox(
+              height: 40,
+              child: Center(
+                child: Text(
+                  '$rating',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: colors.onRatingColor,
                   ),
                 ),
               ),
@@ -86,7 +87,3 @@ class _RatingTile extends StatelessWidget {
     );
   }
 }
-///
-////
-///
-///
