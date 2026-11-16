@@ -111,14 +111,23 @@ class _TagsSectionState extends State<TagsSection> {
 
   // ----- Расчёт вместимости с Lookahead -----
 
+  final Map<String, double> _widthCache = {};
+  TextScaler? _cachedScaler;
+
   double _measureTextWidth(String text, TextScaler textScaler) {
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: _chipTextStyle),
-      maxLines: 1,
-      textDirection: TextDirection.ltr,
-      textScaler: textScaler,
-    )..layout();
-    return painter.width.ceilToDouble();
+    if (_cachedScaler != textScaler) {
+      _widthCache.clear();
+      _cachedScaler = textScaler;
+    }
+    return _widthCache.putIfAbsent(text, () {
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: _chipTextStyle),
+        maxLines: 1,
+        textDirection: TextDirection.ltr,
+        textScaler: textScaler,
+      )..layout();
+      return painter.width.ceilToDouble();
+    });
   }
 
   List<List<String>> _packRows({
